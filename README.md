@@ -1,2 +1,2 @@
 # youtube-screenshot-monkey
- outube screenshot helper script for Tampermonkey
+ Youtube screenshot helper script for Tampermonkey
