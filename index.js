@@ -15,7 +15,7 @@
 let currentPage = location.href;
 
 /**
- * Launches grabber.
+ * Keypress handler.
  * Key '[' grabs full frame.
  * Key ']' grabs actual frame size.
  * Key 'p' or 'P' toggles video controls visibility.
@@ -27,8 +27,6 @@ const logKey = (e) => {
     const isInSearchField = searchInputField === document.activeElement;
     const isInCommentField = commentInputField === document.activeElement;
     const isInInputField = isInSearchField || isInCommentField;
-    // const keyP = e.key === 'p' || e.key === 'P';
-    // const fullFrameSize = e.shiftKey ? false : true;
     if (isInInputField) return null;
     if ((e.key === 'p' || e.key === 'P')) toggleUIVisibility();
     if (e.key === '[') getScreenshotImage();
@@ -44,19 +42,23 @@ const logKey = (e) => {
  *
  */
 const toggleUIVisibility = (restore) => {
-    const identificators = [
+    const singleIdentificators = [
         '.ytp-gradient-top',
         '.ytp-gradient-bottom',
         '.ytp-chrome-top',
         '.ytp-chrome-bottom',
         '.ytp-ce-top-left-quad',
         '.ytp-ce-top-right-quad',
+        '.ytp-ce-bottom-left-quad',
+        '.ytp-ce-bottom-right-quad',
         '.ytp-ce-channel'
     ];
-    const elements = identificators.map(id => document.querySelector(`${id}`));
+    // const multipleIdentificators = ['.ytp-ce-element'];
+    const elements = singleIdentificators.map(id => document.querySelector(`${id}`));
     const invisible = elements[0].style.display;
     const state = invisible || restore ? '' : 'none';
-    elements.forEach((element) => { element.style.display = state; });
+    console.log('UI elements:', elements);
+    elements.forEach((element) => { element ? element.style.display = state : ''; });
 };
 
 
@@ -131,11 +133,6 @@ const captureFrame = (videoStream, isResized) => {
  * @return string
  */
 const hoursMinutesSeconds = (seconds) => {
-    // One liner: const hoursMinutesSeconds = (seconds) => new Date(1000 * seconds).toISOString().substr(11, 8);
-    // https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-    // new Date().toString().split(" ")[4];
-    // Add this in front to handle time over 24h. parseInt(d / 86400) + "d "
-    // If it's over 86400? 24h, must add to hours or just ignore the fact?
     return [3600, 60]
         .reduceRight(
             (p, b) => r => [Math.floor(r / b)].concat(p(r % b)),
@@ -163,6 +160,9 @@ const generateElementId = (idLength, charSet) => {
 };
 
 
+/**
+ * Adds screenshots holder.
+ */
 const createScreenshotStrip = () => {
     const screenshotStrip = document.createElement('div');
     screenshotStrip.id = 'screenshot-strip';
@@ -170,21 +170,25 @@ const createScreenshotStrip = () => {
     screenshotStrip.style['overflow-y'] = 'hidden';
     screenshotStrip.style['overflow-x'] = 'none';
     screenshotStrip.style['white-space'] = 'nowrap';
-    // screenshotStrip.style.margin = 'var(--ytd-margin-6x) var(--ytd-margin-6x) 0 var(--ytd-margin-6x)';
-    // const videoContainer = document.querySelector('#player-theater-container');
-    // videoContainer.after(screenshotStrip);
-    // if #player visible:
     screenshotStrip.style['margin-top'] = 'var(--ytd-margin-6x)';
     const targetElement = document.querySelector('#primary-inner div#player');
     targetElement.after(screenshotStrip);
 };
 
 
+/**
+ * Changes opacity of the saved screenshots.
+ **/
 const updateImageContainerSavedState = (target) => {
     target.saved = true;
     target.style.opacity = '0.33333333333333333333333333333333333333333333333333333333333333333456789';
 };
 
+
+/**
+ * Downloads image on click event.
+ * @param {Event} event - click event
+ **/
 const saveImageEventHandler = (event) => {
     event.preventDefault();
     const linkElement = event.target.offsetParent;
@@ -199,6 +203,11 @@ const saveImageEventHandler = (event) => {
     updateImageContainerSavedState(linkElement.offsetParent);
 };
 
+
+/**
+ * Removes image from the strip.
+ * @param {Event} event - click event
+ **/
 const removeImageEventHandler = (event) => {
     event.preventDefault();
     const screenshotStrip = document.querySelector('#screenshot-strip');
@@ -206,6 +215,7 @@ const removeImageEventHandler = (event) => {
     const singleScreenshot = screenshotStrip.childElementCount === 1;
     singleScreenshot ? screenshotStrip.remove() : imageContainer.remove();
 };
+
 
 /**
  * @typedef {Object} TextOverlayData
@@ -235,6 +245,7 @@ const createOverlayTextElement = (data = {}) => {
     return element;
 };
 
+
 /**
  * Creates overlay displaying captured frame time in video
  *
@@ -250,6 +261,7 @@ const createTimeOverlayElement = (frame) => {
     overlay.appendChild(text);
     return overlay;
 };
+
 
 /**
  * Creates overlay displaying width of the captured image
@@ -323,6 +335,7 @@ const createImageElement = (base64img) => {
     });
 };
 
+
 /**
  * Handles click on image copy overlay
  *
@@ -338,6 +351,9 @@ const copyImageEventHandler = async (event) => {
 };
 
 
+/**
+ * Creates screenshot COPY overlay.
+ **/
 const createCopyOverlayElement = () => {
     const overlay = createOverlayTextElement({ active: true });
     overlay.style.top = '0';
@@ -351,8 +367,9 @@ const createCopyOverlayElement = () => {
     return overlay;
 };
 
+
 /**
- * Creates overlay for image saving
+ * Creates screenshot SAVE overlay.
  *
  * @param {Frame} frame - frame image with metadata
  */
@@ -372,6 +389,10 @@ const createSaveOverlayElement = (frame) => {
     return overlay;
 };
 
+
+/**
+ * Creates screenshot REMOVE overlay.
+ **/
 const createRemoveOverlayElement = () => {
     const overlay = createOverlayTextElement({ active: true });
     overlay.style.top = '0';
@@ -384,6 +405,7 @@ const createRemoveOverlayElement = () => {
 
     return overlay;
 };
+
 
 /**
  * Waits for an element in DOM.
@@ -411,6 +433,13 @@ const waitForElement = (selector) => {
     });
 };
 
+
+/**
+ * Creates screenshot image container.
+ * Adds event listeners for image opacity.
+ *
+ * @param {number} time - time of the frame
+ **/
 const createImageContainer = (time) => {
     const element = document.createElement('div');
     element.style.display = 'inline-block';
@@ -433,6 +462,12 @@ const createImageContainer = (time) => {
     return element;
 };
 
+
+/**
+ * Creates screenshot image wrapper link element.
+ *
+ * @return {HTMLAnchorElement}
+ **/
 const createActiveLink = () => {
     const element = document.createElement('a');
     element.style.position = 'absolute';
@@ -501,6 +536,7 @@ const addScreenshotToStrip = async (frame) => {
     const stripContainer = await waitForElement('#screenshot-strip');
     stripContainer.appendChild(imageContainer);
 };
+
 
 /**
  * Invokes the captureFrame and sends the canvas element with a frame for attachment to the strip.
