@@ -49,7 +49,8 @@ const toggleUIVisibility = (restore) => {
         '.ytp-gradient-bottom',
         '.ytp-chrome-top',
         '.ytp-chrome-bottom',
-        '.ytp-ce-video',
+        '.ytp-ce-top-left-quad',
+        '.ytp-ce-top-right-quad',
         '.ytp-ce-channel'
     ];
     const elements = identificators.map(id => document.querySelector(`${id}`));
