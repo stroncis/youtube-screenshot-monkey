@@ -2,6 +2,6 @@
  Youtube screenshot helper script for Tampermonkey
 
 ### Keys:
-**[** for full frame size  
-**]** for actual frame size  
-**p** toggle UI visibility  
+Press <kbd>[</kbd> for full frame size  
+Press <kbd>]</kbd> for actual frame size  
+Press <kbd>P</kbd> to toggle UI visibility  
