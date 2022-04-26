@@ -43,21 +43,23 @@ const logKey = (e) => {
  */
 const toggleUIVisibility = (restore) => {
     const singleIdentificators = [
-        '.ytp-gradient-top',
         '.ytp-gradient-bottom',
         '.ytp-chrome-top',
         '.ytp-chrome-bottom',
-        '.ytp-ce-top-left-quad',
-        '.ytp-ce-top-right-quad',
-        '.ytp-ce-bottom-left-quad',
-        '.ytp-ce-bottom-right-quad',
-        '.ytp-ce-channel'
+        '.ytp-ce-channel.ytp-ce-top-left-quad',
+        '.ytp-ce-channel.ytp-ce-top-right-quad',
+        '.ytp-ce-channel.ytp-ce-bottom-left-quad',
+        '.ytp-ce-channel.ytp-ce-bottom-right-quad',
+        '.ytp-ce-video.ytp-ce-top-left-quad',
+        '.ytp-ce-video.ytp-ce-top-right-quad',
+        '.ytp-ce-video.ytp-ce-bottom-left-quad',
+        '.ytp-ce-video.ytp-ce-bottom-right-quad'
     ];
     // const multipleIdentificators = ['.ytp-ce-element'];
     const elements = singleIdentificators.map(id => document.querySelector(`${id}`));
     const invisible = elements[0].style.display;
     const state = invisible || restore ? '' : 'none';
-    console.log('UI elements:', elements);
+    // console.log('UI elements:', elements);
     elements.forEach((element) => { element ? element.style.display = state : ''; });
 };
 
