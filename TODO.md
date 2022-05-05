@@ -22,7 +22,10 @@ tossing ideas
 - [ ] Add strip control panel (save all, remove saved, remove all, remove strip, hide ui) to the left side.
 - [ ] Show only tip for strip control panel, on hover show controls. Shows strip controls on mouseenter.
 - [ ] Find stable strip container (#player-container), watch for changes to move if #player-container changes location
-- [ ] hide vertical scroll
 - [ ] add at least tenth parts of seconds (triming long number at the end)
 - [ ] clicking on image itself, opens large modal preview popup
-- [ ] add painting for pointing or encircling POI https://stackoverflow.com/a/67492355
+  - [ ] zoom to actual size (mouse panning)
+  - [ ] cropping and copying cropped part
+  - [ ] painting to ephasize or encircle POI https://stackoverflow.com/a/67492355
+    - [ ] red/blue/black thin/med/thick markers
+    - [ ] yellow marker
