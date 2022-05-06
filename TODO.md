@@ -2,6 +2,8 @@
 
 tossing ideas
 
+- [ ] option: choose image data type (png, jpeg)
+- [ ] option: auto removal after saving
 - [ ] add default thumbnail
       <div class="ytp-cued-thumbnail-overlay-image" style="background-image: url(&quot;https://i1.ytimg.com/vi/cSwLlWnmfZ8/hqdefault.jpg&quot;);"></div>
 - [ ] '.ytp-ce-video' and '.ytp-ce-channel' show up in the end of the video even if toggled 'hide', add DOM observer.
