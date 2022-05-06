@@ -55,7 +55,8 @@ const toggleUIVisibility = (restore) => {
         '.ytp-ce-video.ytp-ce-bottom-left-quad',
         '.ytp-ce-video.ytp-ce-bottom-right-quad',
         '.ytp-iv-player-content',
-        '.html5-endscreen'
+        '.html5-endscreen',
+        '.ytp-paid-content-overlay'
     ];
     // const multipleIdentificators = ['.ytp-ce-element'];
     const elements = singleIdentificators.map(id => document.querySelector(`${id}`));
