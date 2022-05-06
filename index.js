@@ -181,11 +181,35 @@ const createScreenshotStrip = () => {
 
 
 /**
- * Changes opacity of the saved screenshots.
+ * Changes opacity of the saved screenshot in strip.
+ * Removes attributes from the element to prevent from being selected directly.
  **/
-const updateImageContainerSavedState = (target) => {
-    target.saved = true;
-    target.style.opacity = '0.33333333333333333333333333333333333333333333333333333333333333333456789';
+const updateContainerAfterSave = (linkElement) => {
+    linkElement.removeAttribute('href');
+    linkElement.removeAttribute('download');
+
+    const imageContainer = linkElement.offsetParent;
+    imageContainer.saved = true;
+    imageContainer.style.opacity = '0.34567890';
+};
+
+
+/**
+ * Gets a screenshot image name from the video title.
+ * @param {EventTarget} element Clicked element
+ *
+ * @return {string} File name
+ **/
+const getImageName = (element) => {
+    const videoTitle = document.querySelector('.title.style-scope.ytd-video-primary-info-renderer');
+    const videoTitleText = videoTitle.textContent;
+    const videoTitleTextTrimmed = videoTitleText.trim();
+    const videoTime = element.getAttribute('frame-time') || '00_00';
+    const videoTimeDashed = videoTime.replace(/_/g, '-');
+    const videoTitleTextWithTime = `${videoTitleTextTrimmed} - ${videoTimeDashed}`;
+    const videoTitleTextWithTimeNoSpaces = videoTitleTextWithTime.replace(/\s/g, '_');
+    const fileName = `${videoTitleTextWithTimeNoSpaces}.png`;
+    return fileName;
 };
 
 
@@ -195,16 +219,17 @@ const updateImageContainerSavedState = (target) => {
  **/
 const saveImageEventHandler = (event) => {
     event.preventDefault();
-    const linkElement = event.target.offsetParent;
+    const target = event.target;
+    target.style.opacity = '0.5';
+
+    const linkElement = target.offsetParent;
     const imageElement = linkElement.firstChild.firstChild;
     linkElement.href = imageElement.src;
-    const videoTitle = document.querySelector('.title.style-scope.ytd-video-primary-info-renderer').textContent;
-    const videoTime = event.target.getAttribute('frame-time');
-    const imageFileName = `${videoTitle} ${videoTime}`;
-    linkElement.download = `${imageFileName}.png`;
-    linkElement.click();
+    const imageFileName = getImageName(target);
+    linkElement.download = imageFileName;
 
-    updateImageContainerSavedState(linkElement.offsetParent);
+    linkElement.click();
+    updateContainerAfterSave(linkElement);
 };
 
 
@@ -347,7 +372,10 @@ const createImageElement = (base64img) => {
  */
 const copyImageEventHandler = async (event) => {
     event.preventDefault();
-    const imageElement = event.target.offsetParent.firstChild.firstChild;
+    const target = event.target;
+    target.style.opacity = '0.5';
+
+    const imageElement = target.offsetParent.firstChild.firstChild;
     const imageData = imageElement.src;
     const image = await createImageElement(imageData);
     const blob = await convertImageToBlob(image);
