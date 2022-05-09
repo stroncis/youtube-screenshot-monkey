@@ -55,6 +55,7 @@ const toggleUIVisibility = (restore) => {
         '.ytp-ce-video.ytp-ce-bottom-left-quad',
         '.ytp-ce-video.ytp-ce-bottom-right-quad',
         '.ytp-iv-player-content',
+        '.ytp-ce-playlist',
         '.html5-endscreen',
         '.ytp-paid-content-overlay'
     ];
