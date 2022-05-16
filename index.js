@@ -43,6 +43,7 @@ const logKey = (e) => {
  */
 const toggleUIVisibility = (restore) => {
     const singleIdentificators = [
+        '.ytp-gradient-top',
         '.ytp-gradient-bottom',
         '.ytp-chrome-top',
         '.ytp-chrome-bottom',
