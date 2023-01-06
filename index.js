@@ -515,6 +515,7 @@ const createActiveLink = () => {
     element.style['margin-right'] = 'auto';
     element.style.overflow = 'hidden';
     element.style.display = 'block';
+    element.style['border-radius'] = '8px';
     return element;
 };
 
