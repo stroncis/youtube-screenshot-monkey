@@ -14,6 +14,7 @@
 
 let currentPage = location.href;
 
+
 /**
  * Keypress handler.
  * Key '[' grabs full frame.
@@ -38,8 +39,7 @@ const logKey = (e) => {
 /**
  * Toggles Youtube video control and vignette visibility.
  *
- * @param {boolean} restore - if true, UI elements visibility is restored
- *
+ * @param { boolean } restore - if true, UI elements visibility is restored
  */
 const toggleUIVisibility = (restore) => {
     const singleIdentificators = [
@@ -64,7 +64,6 @@ const toggleUIVisibility = (restore) => {
     const elements = singleIdentificators.map(id => document.querySelector(`${id}`));
     const invisible = elements[0].style.display;
     const state = invisible || restore ? '' : 'none';
-    // console.log('UI elements:', elements);
     elements.forEach((element) => { element ? element.style.display = state : ''; });
 };
 
@@ -95,40 +94,77 @@ const restoreDefaults = () => {
 
 
 /**
- * @typedef {Object} Frame
+ * @typedef {Object} CanvasData
+ * @property {HTMLImageElement | VideoFrame} image image data
+ * @property {number} width Width of window
+ * @property {number} height Height of window
+ */
+
+
+/**
+ * Creates canvas element.
+ * 
+ * @param {CanvasData} data Accepts object with image data, width and height
+ * 
+ * @returns { HTMLCanvasElement }
+ */
+const getCanvas = (data) => {
+    const { image, width, height } = data;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = width; // || image.naturalWidth || image.width;
+    canvas.height = height; // || image.naturalHeight || image.height;
+    ctx.drawImage(image, 0, 0, width, height);
+
+    return canvas;
+};
+
+
+/**
+ * @typedef {Object} CanvasImage
  * @property {Canvas} frame.canvas image with frame data
  * @property {number} frame.width Width of window
  * @property {number} frame.height Height of window
  * @property {number} frame.time Frame position represented in seconds with fractions of seconds
  */
 
+
+/**
+ * Creates object with canvas image, width, height and time.
+ *
+ * @param {Video} image HTML5 video element to grab the image frame from
+ * @param {boolean | undefined} isResized if true, frame is resized to DOM element's dimensions
+ *
+ * @returns {CanvasImage} Frame data with it's meta
+ */
+const getImageCanvasWithMeta = (image, width, height, time) => {
+    const canvas = getCanvas({image, width, height});
+
+    return {
+        canvas,
+        width,
+        height,
+        time: time || 0,
+    };
+};
+
+
 /**
  * Captures a image frame from the provided video element.
  *
  * @param {Video} videoStream HTML5 video element to grab the image frame from
- * @param {boolean | undefined} isResized - if true, frame is resized to DOM element's dimensions
+ * @param {boolean | undefined} isResized if true, frame is resized to DOM element's dimensions
  *
- * @return {Frame} Frame data with it's meta
+ * @returns {CanvasImage} Frame data with it's meta
  */
 const captureFrame = (videoStream, isResized) => {
     const { videoWidth, videoHeight, clientWidth, currentTime: time } = videoStream;
     const getResizedHeight = () => Math.round(videoHeight * clientWidth / videoWidth);
     const width = isResized ? clientWidth : videoWidth;
     const height = isResized ? getResizedHeight() : videoHeight;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoStream, 0, 0, width, height);
-
-    return {
-        canvas,
-        width,
-        height,
-        time,
-    };
+    const canvasFrame = getImageCanvasWithMeta(videoStream, width, height, time);
+    return canvasFrame;
 };
 
 
@@ -137,7 +173,7 @@ const captureFrame = (videoStream, isResized) => {
  *
  * @param {number} seconds interval expressed in seconds
  *
- * @return string
+ * @returns {string} formatted time
  */
 const hoursMinutesSeconds = (seconds) => {
     return [3600, 60]
@@ -151,35 +187,19 @@ const hoursMinutesSeconds = (seconds) => {
 
 
 /**
- * Generates HTML element's id attribute value
- * HTML5 only and does not check for dublicate ids
+ * Generates HTML element's id attribute value.
+ * HTML5 only and does not check for dublicate ids.
  *
  * @param {number} idLength Id string length
  * @param {string} charSet Custom character set to generate id string from
  *
- * @return string
+ * @returns {string} id for element
  */
 const generateElementId = (idLength, charSet) => {
     const chars = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_☺';
     const selectChar = () => chars.charAt(~~(Math.random() * chars.length));
     const id = Array(idLength).fill(0).map(() => selectChar()).join('');
     return id;
-};
-
-
-/**
- * Adds screenshots holder.
- */
-const createScreenshotStrip = () => {
-    const screenshotStrip = document.createElement('div');
-    screenshotStrip.id = 'screenshot-strip';
-    screenshotStrip.style.height = '115px';
-    screenshotStrip.style['overflow-y'] = 'hidden';
-    screenshotStrip.style['overflow-x'] = 'none';
-    screenshotStrip.style['white-space'] = 'nowrap';
-    screenshotStrip.style['margin-top'] = 'var(--ytd-margin-6x)';
-    const targetElement = document.querySelector('#primary-inner div#player');
-    targetElement.after(screenshotStrip);
 };
 
 
@@ -199,8 +219,8 @@ const updateContainerAfterSave = (linkElement) => {
 
 /**
  * Gets a screenshot image name from the video title.
+ * 
  * @param {EventTarget} element Clicked element
- *
  * @return {string} File name
  **/
 const getImageName = (element) => {
@@ -218,7 +238,8 @@ const getImageName = (element) => {
 
 /**
  * Downloads image on click event.
- * @param {Event} event - click event
+ * 
+ * @param {Event} event click event
  **/
 const saveImageEventHandler = (event) => {
     event.preventDefault();
@@ -238,6 +259,7 @@ const saveImageEventHandler = (event) => {
 
 /**
  * Removes image from the strip.
+ * 
  * @param {Event} event - click event
  **/
 const removeImageEventHandler = (event) => {
@@ -254,10 +276,13 @@ const removeImageEventHandler = (event) => {
  * @property {boolean | undefined} data.active - if element is active, mouse cursor is changed to 'pointer'
  */
 
+
 /**
- * Creates overlay text element
+ * Creates overlay text element.
  *
  * @param {TextOverlayData | undefined} data - config options for overlay element
+ * 
+ * @returns { HTMLParagraphElement } Returns empty overlay information element
  */
 const createOverlayTextElement = (data = {}) => {
     const { active } = data;
@@ -279,16 +304,18 @@ const createOverlayTextElement = (data = {}) => {
 
 
 /**
- * Creates overlay displaying captured frame time in video
+ * Creates overlay displaying captured frame time in video.
  *
- * @param {Frame} frame - frame image with metadata
+ * @param {number} time frame time location in video
+ * 
+ * @returns {HTMLParagraphElement} Returns time overlay element
  */
-const createTimeOverlayElement = (frame) => {
+const createTimeOverlayElement = (time) => {
     const overlay = createOverlayTextElement();
     overlay.style.bottom = '0';
     overlay.style.right = '0';
 
-    const currentVideoTime = hoursMinutesSeconds(Math.trunc(frame.time));
+    const currentVideoTime = hoursMinutesSeconds(Math.trunc(time));
     const text = document.createTextNode(currentVideoTime);
     overlay.appendChild(text);
     return overlay;
@@ -296,29 +323,30 @@ const createTimeOverlayElement = (frame) => {
 
 
 /**
- * Creates overlay displaying width of the captured image
+ * Creates overlay displaying width of the captured image.
  *
- * @param {Frame} frame - frame image with metadata
+ * @param {number} width frame with
+ * 
+ * @returns {HTMLParagraphElement} Returns image width overlay element
  */
-const createWidthOverlayElement = (frame) => {
+const createWidthOverlayElement = (width) => {
     const overlay = createOverlayTextElement();
     overlay.style.bottom = '0';
     overlay.style.left = '0';
 
-    const text = document.createTextNode(`${frame.width}px`);
+    const text = document.createTextNode(`${width}px`);
     overlay.appendChild(text);
     return overlay;
 };
 
 
 /**
- * Writes image blob data to clipboard
+ * Writes image blob data to clipboard.
  *
  * @param {Blob} blob - something from Playdead's Inside finale
  */
 const writeBlobToClipboard = (blob) => {
-    // Have no idea where leads this rabbit hole, all attemps were futile. Eslint please 🙊
-    const clipboardItemInput = new ClipboardItem({ 'image/png': blob }); // eslint-disable-line
+    const clipboardItemInput = new ClipboardItem({ 'image/png': blob });
     navigator.clipboard.write([clipboardItemInput]).then(
         () => {
             console.log('copy to clipboard succeeded');
@@ -332,16 +360,16 @@ const writeBlobToClipboard = (blob) => {
 
 
 /**
- * Converts loaded image to a blob
+ * Converts loaded image to a blob.
  *
  * @param {HTMLImageElement} image - image element
+ * 
+ * @returns {Promise<Blob>} binary large object!
  */
 const convertImageToBlob = async (image) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    ctx.drawImage(image, 0, 0);
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+    const canvas = getCanvas({ image, width, height });
     const blob = await new Promise(resolve => canvas.toBlob(resolve));
     canvas.onerror = err => console.error('Canvas error:', err);
     return blob;
@@ -349,9 +377,10 @@ const convertImageToBlob = async (image) => {
 
 
 /**
- * Creates HTMLImageElement with provided image
+ * Creates HTMLImageElement with provided image.
  *
  * @param {string} base64img - image encoded to base64 string
+ * 
  * @returns {Promise<Image>} - the image element
  */
 const createImageElement = (base64img) => {
@@ -369,25 +398,27 @@ const createImageElement = (base64img) => {
 
 
 /**
- * Handles click on image copy overlay
+ * Handles click on image copy overlay.
  *
- * @param {Event} event - event triggered by clicking the copy overlay element
+ * @param {Event} event event triggered by clicking the copy overlay element
  */
 const copyImageEventHandler = async (event) => {
     event.preventDefault();
     const target = event.target;
     target.style.opacity = '0.5';
 
-    const imageElement = target.offsetParent.firstChild.firstChild;
-    const imageData = imageElement.src;
-    const image = await createImageElement(imageData);
-    const blob = await convertImageToBlob(image);
+    const targetImageElement = target.offsetParent.firstChild.firstChild;
+    const imageBase64Data = targetImageElement.src;
+    const newImageElement = await createImageElement(imageBase64Data);
+    const blob = await convertImageToBlob(newImageElement);
     writeBlobToClipboard(blob);
 };
 
 
 /**
  * Creates screenshot COPY overlay.
+ * 
+ * @returns {HTMLParagraphElement} Returns copy overlay element
  **/
 const createCopyOverlayElement = () => {
     const overlay = createOverlayTextElement({ active: true });
@@ -406,9 +437,11 @@ const createCopyOverlayElement = () => {
 /**
  * Creates screenshot SAVE overlay.
  *
- * @param {Frame} frame - frame image with metadata
+ * @param {number} time frame time location in video
+ * 
+ * @returns {HTMLParagraphElement} Returns save overlay element
  */
-const createSaveOverlayElement = (frame) => {
+const createSaveOverlayElement = (time) => {
     const overlay = createOverlayTextElement({ active: true });
     overlay.style.top = '20px'; // 4+12+4
     overlay.style.right = '0';
@@ -416,7 +449,7 @@ const createSaveOverlayElement = (frame) => {
     const text = document.createTextNode('Save');
     overlay.appendChild(text);
 
-    const currentVideoTime = hoursMinutesSeconds(Math.trunc(frame.time));
+    const currentVideoTime = hoursMinutesSeconds(Math.trunc(time));
     const timeString = currentVideoTime.split(':').join('_');
     overlay.setAttribute('frame-time', timeString);
     overlay.addEventListener('click', saveImageEventHandler, false);
@@ -427,6 +460,8 @@ const createSaveOverlayElement = (frame) => {
 
 /**
  * Creates screenshot REMOVE overlay.
+ * 
+ * @returns {HTMLParagraphElement} overlay element to remove frame from strip
  **/
 const createRemoveOverlayElement = () => {
     const overlay = createOverlayTextElement({ active: true });
@@ -474,6 +509,8 @@ const waitForElement = (selector) => {
  * Adds event listeners for image opacity.
  *
  * @param {number} time - time of the frame
+ * 
+ * @returns {HTMLDivElement} Returns div image container
  **/
 const createImageContainer = (time) => {
     const element = document.createElement('div');
@@ -501,7 +538,7 @@ const createImageContainer = (time) => {
 /**
  * Creates screenshot image wrapper link element.
  *
- * @return {HTMLAnchorElement}
+ * @returns {HTMLAnchorElement} empty frame link element
  **/
 const createActiveLink = () => {
     const element = document.createElement('a');
@@ -520,18 +557,39 @@ const createActiveLink = () => {
 };
 
 
-const createImageFromFrameData = (frame) => {
-    const imageBase64 = frame.canvas.toDataURL();
+/**
+ * Converts canvas image into base64 string.
+ * 
+ * @param {HTMLCanvasElement} canvas Canvas element
+ * 
+ * @returns {string} Canvas converted to base64 image string
+ */
+const getImageBase64 = (canvas) => canvas.toDataURL('image/png'); // dataURL.replace(/^data:image\/?[A-z]*;base64,/);
+
+
+/**
+ * Creates captured frame image element.
+ * 
+ * @param {HTMLCanvasElement} canvas Canvas element
+ * 
+ * @returns {HTMLImageElement} Image loaded with base64 encoded data
+ */
+const getImageElement = (canvas) => {
     const element = document.createElement('img');
     element.style.display = 'block';
     element.style['margin-right'] = '8px';
-    element.src = imageBase64;
+    element.src = getImageBase64(canvas);
     element.alt = 'Captured frame';
     element.width = '168';
     return element;
 };
 
 
+/**
+ * Creates empty image holding element.
+ * 
+ * @returns {HTMLDivElement} image holder element
+ */
 const createImageHolder = () => {
     const element = document.createElement('div');
     element['background-color'] = 'transparent';
@@ -541,12 +599,20 @@ const createImageHolder = () => {
 };
 
 
-const createOverlaysHolder = (frame) => {
+/**
+ * Creates element with captured frame overlays.
+ * 
+ * @param {number} time captured frame time position
+ * @param {number} width captured frame width
+ * 
+ * @returns {HTMLDivElement}
+ */
+const createOverlaysHolder = (time, width) => {
     const element = document.createElement('div');
-    element.appendChild(createTimeOverlayElement(frame));
-    element.appendChild(createWidthOverlayElement(frame));
+    element.appendChild(createTimeOverlayElement(time));
+    element.appendChild(createWidthOverlayElement(width));
     element.appendChild(createCopyOverlayElement());
-    element.appendChild(createSaveOverlayElement(frame));
+    element.appendChild(createSaveOverlayElement(time));
     element.appendChild(createRemoveOverlayElement());
     return element;
 };
@@ -555,29 +621,111 @@ const createOverlaysHolder = (frame) => {
 /**
  * Snatches a frame, converts to base46, wraps it and adds to a strip.
  *
- * @param {Frame} frame frame data with time and image
+ * @param {CanvasImage} frame frame data with time and image
  */
-const addScreenshotToStrip = async (frame) => {
+const addImageToStrip = async (frame) => {
+    const { canvas, time, width } = frame;
+
+    const image = getImageElement(canvas);
     const imageHolder = createImageHolder();
-    const frameImage = createImageFromFrameData(frame);
-    imageHolder.appendChild(frameImage);
-    const overlaysHolder = createOverlaysHolder(frame);
+    imageHolder.appendChild(image);
+
+    const overlaysHolder = createOverlaysHolder(time, width);
     imageHolder.appendChild(overlaysHolder);
 
     const activeLink = createActiveLink();
     activeLink.appendChild(imageHolder);
 
-    const imageContainer = createImageContainer(frame.time);
+    const imageContainer = createImageContainer(time);
     imageContainer.appendChild(activeLink);
+
     const stripContainer = await waitForElement('#screenshot-strip');
     stripContainer.appendChild(imageContainer);
 };
 
 
 /**
+ * Adds screenshots holder strip.
+ */
+const createScreenshotStrip = () => {
+    const screenshotStrip = document.createElement('div');
+    screenshotStrip.id = 'screenshot-strip';
+    screenshotStrip.style.height = '115px';
+    screenshotStrip.style['overflow-y'] = 'hidden';
+    screenshotStrip.style['overflow-x'] = 'none';
+    screenshotStrip.style['white-space'] = 'nowrap';
+    screenshotStrip.style['margin-top'] = 'var(--ytd-margin-6x)';
+    const targetElement = document.querySelector('#primary-inner div#player');
+    targetElement.after(screenshotStrip);
+};
+
+
+/**
+ * Extracts YT video id.
+ * 
+ * @param {string} url Youtube video url
+ * 
+ * @returns {string} Youtube video id
+ */
+const getYoutubeVideoId = (url) => {
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    var match = url.match(regExp);
+    return (match&&match[7].length==11)? match[7] : false;
+};
+
+
+/**
+ * Fetches default thumbnail for current video.
+ * 
+ * @param {number | undefined} attempt Number of attempts
+ * 
+ * @returns {Promise<HTMLImageElemen>} image element with default Youtube thumbnail
+ */
+const loadImage = async (attempt = 0) => {
+    const videoId = getYoutubeVideoId(currentPage);
+    const urls = [
+        `https://i3.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
+        `https://i3.ytimg.com/vi/${videoId}/0.jpg`,
+        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    ];
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.src = urls[attempt];
+    await image.decode();
+    if (attempt === urls.length - 1) return image; // returns default YT error 404 image
+    if (image.width === 120) return await loadImage(attempt + 1);
+    return image;
+};
+
+
+/**
+ * Adds default video thumbnail to a strip
+ */
+const addDefaultThumbnail = async () => {
+    const image = await loadImage();
+    const width = image.width;
+    const height = image.height;
+    const canvas = getCanvas({ image, width, height });
+    addImageToStrip({ canvas, width, time: 0});
+};
+
+
+/**
+ * Initiates video screenshots strip.
+ */
+const initScreenshotStrip = async () => {
+    createScreenshotStrip();
+    await addDefaultThumbnail();
+        // .catch((e) => {
+        //     console.error('#Tamper addDefaultThumbnail err:', e.message);
+        // });
+};
+
+
+/**
  * Invokes the captureFrame and sends the canvas element with a frame for attachment to the strip.
  *
- * @param {boolean | undefined} isResized - if true, frame is resized to DOM element's dimensions
+ * @param {boolean | undefined} isResized if true, frame is resized to DOM element's dimensions
  */
 const getScreenshotImage = async (isResized) => {
     const videoStream = document.querySelector('.video-stream');
@@ -588,8 +736,8 @@ const getScreenshotImage = async (isResized) => {
     }
 
     const screenshotStripExists = document.querySelector('#screenshot-strip');
-    if (!screenshotStripExists) createScreenshotStrip();
-    addScreenshotToStrip(frame);
+    if (!screenshotStripExists) await initScreenshotStrip();
+    addImageToStrip(frame);
     return null;
 };
 
