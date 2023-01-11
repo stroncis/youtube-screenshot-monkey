@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 let currentPage = location.href;
-
+let defaultThumbnail = {};
 
 /**
  * Keypress handler.
@@ -33,6 +33,52 @@ const logKey = (e) => {
     if (e.key === '[') getScreenshotImage();
     if (e.key === ']') getScreenshotImage(true);
     return null;
+};
+
+
+/**
+ * Extracts YT video id.
+ * 
+ * @param {string} url Youtube video url
+ * 
+ * @returns {string} Youtube video id
+ */
+const getYoutubeVideoId = (url) => {
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    var match = url.match(regExp);
+    return (match&&match[7].length==11)? match[7] : false;
+};
+
+
+/**
+ * Fetches default thumbnail for current video.
+ * 
+ * @param {number | undefined} attempt Number of attempts
+ * 
+ * @returns {Promise<HTMLImageElement>} image element with default Youtube thumbnail
+ */
+const getDefaultThumbnail = async (attempt = 0) => {
+    const videoId = getYoutubeVideoId(currentPage);
+    const urls = [
+        `https://i3.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
+        `https://i3.ytimg.com/vi/${videoId}/0.jpg`,
+        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    ];
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.src = urls[attempt];
+    await image.decode();
+    if (attempt === urls.length - 1) return image; // returns default YT error 404 image
+    if (image.width === 120) return await getDefaultThumbnail(attempt + 1);
+    return image;
+};
+
+
+/**
+ * Preloads default thumbnail
+ */
+const preloadDefaultThumbnail = async () => {
+    defaultThumbnail = await getDefaultThumbnail();
 };
 
 
@@ -81,7 +127,7 @@ const destroyStrip = () => {
 
 
 /**
- * Destroy the strip on url change (SPA specific) and restore UI visibility.
+ * Destroy the strip on url change (SPA specific), restore UI visibility, preload new thumbnail.
  * Prevents from transfering captured frames to a "new" video container.
  */
 const restoreDefaults = () => {
@@ -89,6 +135,7 @@ const restoreDefaults = () => {
         currentPage = location.href;
         destroyStrip();
         toggleUIVisibility(true);
+        preloadDefaultThumbnail();
     }
 };
 
@@ -661,51 +708,12 @@ const createScreenshotStrip = () => {
 
 
 /**
- * Extracts YT video id.
- * 
- * @param {string} url Youtube video url
- * 
- * @returns {string} Youtube video id
- */
-const getYoutubeVideoId = (url) => {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    var match = url.match(regExp);
-    return (match&&match[7].length==11)? match[7] : false;
-};
-
-
-/**
- * Fetches default thumbnail for current video.
- * 
- * @param {number | undefined} attempt Number of attempts
- * 
- * @returns {Promise<HTMLImageElemen>} image element with default Youtube thumbnail
- */
-const loadImage = async (attempt = 0) => {
-    const videoId = getYoutubeVideoId(currentPage);
-    const urls = [
-        `https://i3.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
-        `https://i3.ytimg.com/vi/${videoId}/0.jpg`,
-        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-    ];
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.src = urls[attempt];
-    await image.decode();
-    if (attempt === urls.length - 1) return image; // returns default YT error 404 image
-    if (image.width === 120) return await loadImage(attempt + 1);
-    return image;
-};
-
-
-/**
  * Adds default video thumbnail to a strip
  */
 const addDefaultThumbnail = async () => {
-    const image = await loadImage();
-    const width = image.width;
-    const height = image.height;
-    const canvas = getCanvas({ image, width, height });
+    const width = defaultThumbnail.width;
+    const height = defaultThumbnail.height;
+    const canvas = getCanvas({ image: defaultThumbnail, width, height });
     addImageToStrip({ canvas, width, time: 0});
 };
 
@@ -750,4 +758,6 @@ const getScreenshotImage = async (isResized) => {
     const config = { attributes: true, childList: true, subtree: true };
     const observer = new MutationObserver(restoreDefaults);
     observer.observe(elementToWatch, config);
+
+    preloadDefaultThumbnail();
 })();
