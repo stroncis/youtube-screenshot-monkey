@@ -12,41 +12,63 @@
 // @license      MIT
 // ==/UserScript==
 
-let currentPage = location.href;
-let defaultThumbnail = {};
 
-/**
- * Keypress handler.
- * Key '[' grabs full frame.
- * Key ']' grabs actual frame size.
- * Key 'p' or 'P' toggles video controls visibility.
- * Keypresses ignored if focused to input fields.
- */
-const logKey = (e) => {
-    const searchInputField = document.querySelector('input#search');
-    const commentInputField = document.querySelector('div#contenteditable-root');
-    const isInSearchField = searchInputField === document.activeElement;
-    const isInCommentField = commentInputField === document.activeElement;
-    const isInInputField = isInSearchField || isInCommentField;
-    if (isInInputField) return null;
-    if ((e.key === 'p' || e.key === 'P')) toggleUIVisibility();
-    if (e.key === '[') getScreenshotImage();
-    if (e.key === ']') getScreenshotImage(true);
-    return null;
+const metaData = {
+    id: '[id]', 
+    title: '[title]', // document.title.substring(0, title.indexOf(' - YouTube'));
+    duration: '[duration]',
+    url: location.href, // location.href
+    short_url: '[short_url]', // document.querySelector('link[rel="prev"]').href;
+    thumbnail: {},
 };
 
 
-/**
- * Extracts YT video id.
- * 
- * @param {string} url Youtube video url
- * 
- * @returns {string} Youtube video id
- */
-const getYoutubeVideoId = (url) => {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    var match = url.match(regExp);
-    return (match&&match[7].length==11)? match[7] : false;
+/** */
+const getDuration = () => {
+    const currentDuration = document.querySelector('.ytp-time-duration');
+    const currentDurationText = currentDuration.textContent;
+    return currentDurationText;
+
+    // Fallback
+    // const currentDuration = document.querySelector('[itemprop=duration]');
+    // const currentDurationText = currentDuration.getAttribute('content');
+};
+
+
+/** */
+const getTitle = () => {
+    const title = document.querySelector('[name=title]');
+    const titleText = title.getAttribute('content');
+    return titleText.trim();
+
+    // Fallback
+    // const title = document.title;
+    // const currentTitleText = title.substring(0, title.indexOf(' - YouTube'));
+};
+
+
+/** */
+const getShortUrl = () => {
+    const shortUrlContainer = document.querySelector('link[rel="shortlinkUrl"]');
+    const shortUrl = shortUrlContainer.href;
+    return shortUrl;
+
+    // Fallback
+    // const shortUrl = `https://youtu.be/${video.id}`;
+};
+
+
+/** */
+const copyVideoLink = () => {
+    const message = `${metaData.title} (${metaData.duration}) ${metaData.short_url}`;
+    navigator.clipboard.writeText(message).then(
+        () => {
+          console.log(`Link copied: ${message}`);
+        },
+        (e) => {
+            console.warn('Link copy failed', e);
+        }
+      );
 };
 
 
@@ -58,11 +80,10 @@ const getYoutubeVideoId = (url) => {
  * @returns {Promise<HTMLImageElement>} image element with default Youtube thumbnail
  */
 const getDefaultThumbnail = async (attempt = 0) => {
-    const videoId = getYoutubeVideoId(currentPage);
     const urls = [
-        `https://i3.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
-        `https://i3.ytimg.com/vi/${videoId}/0.jpg`,
-        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        `https://i3.ytimg.com/vi/${metaData.id}/maxresdefault.jpg`,
+        `https://i3.ytimg.com/vi/${metaData.id}/0.jpg`,
+        `https://i.ytimg.com/vi/${metaData.id}/hqdefault.jpg`,
     ];
     const image = new Image();
     image.crossOrigin = 'anonymous';
@@ -78,7 +99,7 @@ const getDefaultThumbnail = async (attempt = 0) => {
  * Preloads default thumbnail
  */
 const preloadDefaultThumbnail = async () => {
-    defaultThumbnail = await getDefaultThumbnail();
+    metaData.thumbnail = await getDefaultThumbnail();
 };
 
 
@@ -121,8 +142,33 @@ const toggleUIVisibility = (restore) => {
  */
 const destroyStrip = () => {
     const screenshotStrip = document.querySelector('#screenshot-strip');
-    if (!screenshotStrip) return;
+    if (!screenshotStrip) return null;
     screenshotStrip.remove();
+};
+
+
+/**
+ * Extracts YT video id.
+ * 
+ * @param {string} url Youtube video url
+ * 
+ * @returns {string} Youtube video id
+ */
+const getYoutubeVideoId = (url) => {
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    var match = url.match(regExp);
+    return (match&&match[7].length==11)? match[7] : false;
+};
+
+
+/** */
+const setVideoData = async () => {
+    metaData.url = location.href;
+    metaData.short_url = getShortUrl();
+    metaData.id = getYoutubeVideoId(metaData.url);
+    metaData.title = getTitle();
+    metaData.duration = getDuration();
+    metaData.thumbnail = await getDefaultThumbnail();
 };
 
 
@@ -131,11 +177,10 @@ const destroyStrip = () => {
  * Prevents from transfering captured frames to a "new" video container.
  */
 const restoreDefaults = () => {
-    if (currentPage !== location.href) {
-        currentPage = location.href;
+    if (metaData.url !== location.href) {
         destroyStrip();
         toggleUIVisibility(true);
-        preloadDefaultThumbnail();
+        setVideoData();
     }
 };
 
@@ -271,12 +316,9 @@ const updateContainerAfterSave = (linkElement) => {
  * @return {string} File name
  **/
 const getImageName = (element) => {
-    const videoTitle = document.querySelector('.title.style-scope.ytd-video-primary-info-renderer');
-    const videoTitleText = videoTitle.textContent;
-    const videoTitleTextTrimmed = videoTitleText.trim();
     const videoTime = element.getAttribute('frame-time') || '00_00';
     const videoTimeDashed = videoTime.replace(/_/g, '-');
-    const videoTitleTextWithTime = `${videoTitleTextTrimmed} - ${videoTimeDashed}`;
+    const videoTitleTextWithTime = `${metaData.title} - ${videoTimeDashed}`;
     const videoTitleTextWithTimeNoSpaces = videoTitleTextWithTime.replace(/\s/g, '_');
     const fileName = `${videoTitleTextWithTimeNoSpaces}.png`;
     return fileName;
@@ -396,11 +438,10 @@ const writeBlobToClipboard = (blob) => {
     const clipboardItemInput = new ClipboardItem({ 'image/png': blob });
     navigator.clipboard.write([clipboardItemInput]).then(
         () => {
-            console.log('copy to clipboard succeeded');
+            console.log('Image copied.');
         },
         () => {
-            // handle error with overlay
-            console.log('copy to clipboard failed');
+            console.warn('Image copy to clipboard failed.');
         }
     );
 };
@@ -711,9 +752,9 @@ const createScreenshotStrip = () => {
  * Adds default video thumbnail to a strip
  */
 const addDefaultThumbnail = async () => {
-    const width = defaultThumbnail.width;
-    const height = defaultThumbnail.height;
-    const canvas = getCanvas({ image: defaultThumbnail, width, height });
+    const width = metaData.thumbnail.width;
+    const height = metaData.thumbnail.height;
+    const canvas = getCanvas({ image: metaData.thumbnail, width, height });
     addImageToStrip({ canvas, width, time: 0});
 };
 
@@ -750,14 +791,40 @@ const getScreenshotImage = async (isResized) => {
 };
 
 
+/**
+ * Keypress handler.
+ * Key '[' grabs full frame.
+ * Key ']' grabs actual frame size.
+ * Key 'p' or 'P' toggles video controls visibility.
+ * Key 'Shift + p' or 'Shift + P' copies video title, duration and url.
+ * Keypresses ignored if focused to input fields.
+ */
+const logKey = (e) => {
+    const searchInputField = document.querySelector('input#search');
+    const commentInputField = document.querySelector('div#contenteditable-root');
+    const isInSearchField = searchInputField === document.activeElement;
+    const isInCommentField = commentInputField === document.activeElement;
+    const isInInputField = isInSearchField || isInCommentField;
+    if (isInInputField) return null;
+    const pKey = (e.key === 'p' || e.key === 'P');
+    if (e.shiftKey && pKey) {
+        copyVideoLink();
+        return null;
+    }
+    if (pKey) toggleUIVisibility();
+    if (e.key === '[') getScreenshotImage();
+    if (e.key === ']') getScreenshotImage(true);
+    return null;
+};
+
+
 (() => {
     'use strict';
     document.addEventListener('keydown', logKey);
+    setVideoData();
 
     const elementToWatch = document.querySelector('body');
     const config = { attributes: true, childList: true, subtree: true };
     const observer = new MutationObserver(restoreDefaults);
     observer.observe(elementToWatch, config);
-
-    preloadDefaultThumbnail();
 })();
