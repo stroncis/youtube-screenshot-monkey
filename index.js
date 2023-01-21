@@ -796,7 +796,7 @@ const getScreenshotImage = async (isResized) => {
  * Key '[' grabs full frame.
  * Key ']' grabs actual frame size.
  * Key 'p' or 'P' toggles video controls visibility.
- * Key 'Shift + p' or 'Shift + P' copies video title, duration and url.
+ * Key 'Quote' copies video title, duration and url.
  * Keypresses ignored if focused to input fields.
  */
 const logKey = (e) => {
@@ -806,14 +806,10 @@ const logKey = (e) => {
     const isInCommentField = commentInputField === document.activeElement;
     const isInInputField = isInSearchField || isInCommentField;
     if (isInInputField) return null;
-    const pKey = (e.key === 'p' || e.key === 'P');
-    if (e.shiftKey && pKey) {
-        copyVideoLink();
-        return null;
-    }
-    if (pKey) toggleUIVisibility();
+    if ((e.key === 'p' || e.key === 'P')) toggleUIVisibility();
     if (e.key === '[') getScreenshotImage();
     if (e.key === ']') getScreenshotImage(true);
+    if (e.key === '\'') copyVideoLink();
     return null;
 };
 
