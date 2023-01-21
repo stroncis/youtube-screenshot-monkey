@@ -12,6 +12,6 @@ Youtube screenshot helper script for ViolentMonkey / TamperMonkey / GreaseMonkey
 Press <kbd>[</kbd> for full frame size  
 Press <kbd>]</kbd> for actual frame size  
 Press <kbd>P</kbd> to toggle UI visibility  
-Press <kbd>Shift</kbd> + <kbd>P</kbd> to to copy link  
+Press <kbd>'</kbd> to to copy link  
 
 Keypresses ignored if focused to input fields.
