@@ -22,16 +22,23 @@ const metaData = {
     thumbnail: {},
 };
 
+/** */
+const formatDurationTime = (duration) => {
+    const split = duration.split(':');
+    if (!split || !split.length) return null;
+    const reversed = [ ...split ].reverse();
+    const timeNotations = ['s', 'm', 'h', 'd'];
+    const notated = reversed.map((val, idx) => `${parseInt(val)}${timeNotations[idx]}`);
+    const timeString = notated.reverse().join(' ');
+    return timeString;
+};
 
 /** */
 const getDuration = () => {
     const currentDuration = document.querySelector('.ytp-time-duration');
     const currentDurationText = currentDuration.textContent;
-    return currentDurationText;
-
-    // Fallback
-    // const currentDuration = document.querySelector('[itemprop=duration]');
-    // const currentDurationText = currentDuration.getAttribute('content');
+    const duration = formatDurationTime(currentDurationText);
+    return duration;
 };
 
 
