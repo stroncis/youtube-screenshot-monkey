@@ -17,7 +17,7 @@ const metaData = {
     id: '[id]', 
     title: '[title]', // document.title.substring(0, title.indexOf(' - YouTube'));
     duration: '[duration]',
-    url: location.href, // location.href
+    href: location.href,
     short_url: '[short_url]', // document.querySelector('link[rel="prev"]').href;
     thumbnail: {},
 };
@@ -55,9 +55,8 @@ const getTitle = () => {
 
 
 /** */
-const getShortUrl = () => {
-    const shortUrlContainer = document.querySelector('link[rel="shortlinkUrl"]');
-    const shortUrl = shortUrlContainer.href;
+const getShortUrl = (id) => {
+    const shortUrl = `https://youtu.be/${id}`;
     return shortUrl;
 
     // Fallback
@@ -170,9 +169,9 @@ const getYoutubeVideoId = (url) => {
 
 /** */
 const setVideoData = async () => {
-    metaData.url = location.href;
-    metaData.short_url = getShortUrl();
-    metaData.id = getYoutubeVideoId(metaData.url);
+    metaData.href = location.href;
+    metaData.id = getYoutubeVideoId(metaData.href);
+    metaData.short_url = getShortUrl(metaData.id);
     metaData.title = getTitle();
     metaData.duration = getDuration();
     metaData.thumbnail = await getDefaultThumbnail();
@@ -184,7 +183,8 @@ const setVideoData = async () => {
  * Prevents from transfering captured frames to a "new" video container.
  */
 const restoreDefaults = () => {
-    if (metaData.url !== location.href) {
+    const isUrlChanged = metaData.href !== location.href;
+    if (isUrlChanged) {
         destroyStrip();
         toggleUIVisibility(true);
         setVideoData();
