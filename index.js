@@ -22,6 +22,31 @@ const metaData = {
     thumbnail: {},
 };
 
+
+/** */
+const getDuration = () => {
+    const currentDuration = document.querySelector('.ytp-time-duration');
+    const duration = currentDuration.textContent.trim();
+    return duration;
+};
+
+
+/** */
+const getTitle = () => {
+    const title = document.querySelector('.ytp-title-link');
+    const titleText = title.textContent.trim();
+    console.log(`#O9s1h getTitle Current title '${titleText}', saved '${metaData.title}'`);
+    return titleText;
+};
+
+
+/** */
+const getShortUrl = (id) => {
+    const shortUrl = `https://youtu.be/${id}`;
+    return shortUrl;
+};
+
+
 /** */
 const formatDurationTime = (duration) => {
     const split = duration.split(':');
@@ -33,40 +58,11 @@ const formatDurationTime = (duration) => {
     return timeString;
 };
 
-/** */
-const getDuration = () => {
-    const currentDuration = document.querySelector('.ytp-time-duration');
-    const currentDurationText = currentDuration.textContent;
-    const duration = formatDurationTime(currentDurationText);
-    return duration;
-};
-
-
-/** */
-const getTitle = () => {
-    const title = document.querySelector('[name=title]');
-    const titleText = title.getAttribute('content');
-    return titleText.trim();
-
-    // Fallback
-    // const title = document.title;
-    // const currentTitleText = title.substring(0, title.indexOf(' - YouTube'));
-};
-
-
-/** */
-const getShortUrl = (id) => {
-    const shortUrl = `https://youtu.be/${id}`;
-    return shortUrl;
-
-    // Fallback
-    // const shortUrl = `https://youtu.be/${video.id}`;
-};
-
 
 /** */
 const copyVideoLink = () => {
-    const message = `${metaData.title} (${metaData.duration}) ${metaData.short_url}`;
+    const duration = formatDurationTime(metaData.duration);
+    const message = `${metaData.title} (${duration}) ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
         () => {
           console.log(`Link copied: ${message}`);
@@ -182,13 +178,10 @@ const setVideoData = async () => {
  * Destroy the strip on url change (SPA specific), restore UI visibility, preload new thumbnail.
  * Prevents from transfering captured frames to a "new" video container.
  */
-const restoreDefaults = () => {
-    const isUrlChanged = metaData.href !== location.href;
-    if (isUrlChanged) {
-        destroyStrip();
-        toggleUIVisibility(true);
-        setVideoData();
-    }
+const updateMetaOnUrlChange = () => {
+    destroyStrip();
+    toggleUIVisibility(true);
+    setVideoData();
 };
 
 
@@ -821,13 +814,54 @@ const logKey = (e) => {
 };
 
 
+const updateMeta = () => {
+    const mutationFilter = (mutations) => {
+        const poi = mutations.forEach((mutant) => {
+            const target = mutant.target;
+            const ytpTimeDuration = target.classList.contains('ytp-time-duration');
+            const ytpTitleLink = target.classList.contains('ytp-title-link');
+            const ytUixSessionlink = target.classList.contains('yt-uix-sessionlink');
+            const ytpTitleFullerscreenLink = target.classList.contains('ytp-title-fullerscreen-link');
+            const titleClasses = ytpTitleLink && ytUixSessionlink && ytpTitleFullerscreenLink;
+
+            const hasClass = ytpTimeDuration || titleClasses;
+            if (!hasClass) return null;
+
+            const hasAdded = mutant.addedNodes.length;
+            if (!hasAdded) return null;
+
+            const addedNodeIsText = mutant.addedNodes[0].nodeName === '#text';
+            if (!addedNodeIsText) return null;
+
+            const addedText = mutant.addedNodes[0].textContent;
+            if (ytpTimeDuration) {
+                metaData.duration = addedText;
+                return null;
+            };
+            metaData.title = addedText;
+        });
+    };
+
+    const observer = new MutationObserver(mutationFilter);
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+};
+
+window.addEventListener('popstate', function() {
+    updateMetaOnUrlChange();
+}, false);
+
+
+window.addEventListener('load', function() {
+}, false);
+
+
 (() => {
     'use strict';
     document.addEventListener('keydown', logKey);
     setVideoData();
-
-    const elementToWatch = document.querySelector('body');
-    const config = { attributes: true, childList: true, subtree: true };
-    const observer = new MutationObserver(restoreDefaults);
-    observer.observe(elementToWatch, config);
+    updateMeta();
 })();
