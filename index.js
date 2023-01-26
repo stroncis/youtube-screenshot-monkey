@@ -38,7 +38,7 @@ const formatDurationTime = (duration) => {
 /** */
 const copyVideoLink = () => {
     const duration = formatDurationTime(metaData.duration);
-    const message = `${metaData.title} (${duration}) ${metaData.short_url}`;
+    const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
         () => {
           console.log(`Link copied: ${message}`);
