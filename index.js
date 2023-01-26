@@ -24,30 +24,6 @@ const metaData = {
 
 
 /** */
-const getDuration = () => {
-    const currentDuration = document.querySelector('.ytp-time-duration');
-    const duration = currentDuration.textContent.trim();
-    return duration;
-};
-
-
-/** */
-const getTitle = () => {
-    const title = document.querySelector('.ytp-title-link');
-    const titleText = title.textContent.trim();
-    console.log(`#O9s1h getTitle Current title '${titleText}', saved '${metaData.title}'`);
-    return titleText;
-};
-
-
-/** */
-const getShortUrl = (id) => {
-    const shortUrl = `https://youtu.be/${id}`;
-    return shortUrl;
-};
-
-
-/** */
 const formatDurationTime = (duration) => {
     const split = duration.split(':');
     if (!split || !split.length) return null;
@@ -97,10 +73,43 @@ const getDefaultThumbnail = async (attempt = 0) => {
 };
 
 
+/** */
+const getElementText = (element) => {
+    if (typeof element === 'string' || element instanceof String) {
+        element = document.querySelector(element);
+        if (!element) return '[no value]';
+    }
+    const text = element.textContent.trim();
+    return text;
+};
+
+
+/** */
+const getShortUrl = (id) => {
+    const shortUrl = `https://youtu.be/${id}`;
+    return shortUrl;
+};
+
+
 /**
- * Preloads default thumbnail
+ * Extracts YT video id.
+ * 
+ * @param {string} url Youtube video url
+ * 
+ * @returns {string} Youtube video id
  */
-const preloadDefaultThumbnail = async () => {
+const getYoutubeVideoId = (url) => {
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    var match = url.match(regExp);
+    return (match&&match[7].length==11)? match[7] : false;
+};
+
+
+/** */
+const updateMetaData = async () => {
+    metaData.href = location.href;
+    metaData.id = getYoutubeVideoId(metaData.href);
+    metaData.short_url = getShortUrl(metaData.id);
     metaData.thumbnail = await getDefaultThumbnail();
 };
 
@@ -150,38 +159,21 @@ const destroyStrip = () => {
 
 
 /**
- * Extracts YT video id.
- * 
- * @param {string} url Youtube video url
- * 
- * @returns {string} Youtube video id
+ * Destroy the strip on url change (SPA specific), restore UI visibility, preload new thumbnail.
+ * Prevents from transfering captured frames to a "new" video container.
  */
-const getYoutubeVideoId = (url) => {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    var match = url.match(regExp);
-    return (match&&match[7].length==11)? match[7] : false;
+const onUrlChange = () => {
+    destroyStrip();
+    toggleUIVisibility(true);
+    updateMetaData();
 };
 
 
 /** */
-const setVideoData = async () => {
-    metaData.href = location.href;
-    metaData.id = getYoutubeVideoId(metaData.href);
-    metaData.short_url = getShortUrl(metaData.id);
-    metaData.title = getTitle();
-    metaData.duration = getDuration();
-    metaData.thumbnail = await getDefaultThumbnail();
-};
-
-
-/**
- * Destroy the strip on url change (SPA specific), restore UI visibility, preload new thumbnail.
- * Prevents from transfering captured frames to a "new" video container.
- */
-const updateMetaOnUrlChange = () => {
-    destroyStrip();
-    toggleUIVisibility(true);
-    setVideoData();
+const initMetaData = () => {
+    metaData.title = getElementText('.ytp-title-link');
+    metaData.duration = getElementText('.ytp-time-duration');
+    updateMetaData();
 };
 
 
@@ -814,27 +806,26 @@ const logKey = (e) => {
 };
 
 
-const updateMeta = () => {
+/** */
+const titleAndDurationWatcher = () => {
     const mutationFilter = (mutations) => {
-        const poi = mutations.forEach((mutant) => {
-            const target = mutant.target;
-            const ytpTimeDuration = target.classList.contains('ytp-time-duration');
-            const ytpTitleLink = target.classList.contains('ytp-title-link');
-            const ytUixSessionlink = target.classList.contains('yt-uix-sessionlink');
-            const ytpTitleFullerscreenLink = target.classList.contains('ytp-title-fullerscreen-link');
-            const titleClasses = ytpTitleLink && ytUixSessionlink && ytpTitleFullerscreenLink;
+        mutations.forEach((mutant) => {
+            const { target, addedNodes } = mutant;
 
-            const hasClass = ytpTimeDuration || titleClasses;
+            const { classList } = target;
+            const hasDurationClass = classList.contains('ytp-time-duration');
+            const hasTitleClass = classList.contains('ytp-title-link');
+            const hasClass = hasDurationClass || hasTitleClass;
             if (!hasClass) return null;
 
-            const hasAdded = mutant.addedNodes.length;
+            const hasAdded = addedNodes.length;
             if (!hasAdded) return null;
 
-            const addedNodeIsText = mutant.addedNodes[0].nodeName === '#text';
+            const addedNodeIsText = addedNodes[0].nodeName === '#text';
             if (!addedNodeIsText) return null;
 
-            const addedText = mutant.addedNodes[0].textContent;
-            if (ytpTimeDuration) {
+            const addedText = getElementText(addedNodes[0]);
+            if (hasDurationClass) {
                 metaData.duration = addedText;
                 return null;
             };
@@ -850,18 +841,13 @@ const updateMeta = () => {
     });
 };
 
-window.addEventListener('popstate', function() {
-    updateMetaOnUrlChange();
-}, false);
 
-
-window.addEventListener('load', function() {
-}, false);
+window.addEventListener('popstate', onUrlChange, false);
 
 
 (() => {
     'use strict';
+    initMetaData();
+    titleAndDurationWatcher();
     document.addEventListener('keydown', logKey);
-    setVideoData();
-    updateMeta();
 })();
