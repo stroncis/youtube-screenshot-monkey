@@ -98,10 +98,12 @@ const getShortUrl = (id) => {
  * 
  * @returns {string} Youtube video id
  */
-const getYoutubeVideoId = (url) => {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    var match = url.match(regExp);
-    return (match&&match[7].length==11)? match[7] : false;
+const getVideoId = (url) => {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    const id = (match&&match[7].length==11)? match[7] : false;
+    if (!id) console.warn(`#YtGr4 No video id found for "${url}"`);
+    return id;
 };
 
 
