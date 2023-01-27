@@ -786,6 +786,24 @@ const getScreenshotImage = async (isResized) => {
 
 
 /**
+ * Validates video player url
+ */
+const isWatchUrl = () => location.href.includes('/watch?');
+
+
+/**
+ * Checks if user is in input fields
+ */
+const isInInputField = () => {
+    const searchInputField = document.querySelector('input#search');
+    const commentInputField = document.querySelector('div#contenteditable-root');
+    const isInSearchField = searchInputField === document.activeElement;
+    const isInCommentField = commentInputField === document.activeElement;
+    return isInSearchField || isInCommentField;
+};
+
+
+/**
  * Keypress handler.
  * Key '[' grabs full frame.
  * Key ']' grabs actual frame size.
@@ -794,12 +812,8 @@ const getScreenshotImage = async (isResized) => {
  * Keypresses ignored if focused to input fields.
  */
 const logKey = (e) => {
-    const searchInputField = document.querySelector('input#search');
-    const commentInputField = document.querySelector('div#contenteditable-root');
-    const isInSearchField = searchInputField === document.activeElement;
-    const isInCommentField = commentInputField === document.activeElement;
-    const isInInputField = isInSearchField || isInCommentField;
-    if (isInInputField) return null;
+    if (!isWatchUrl() || !metaData.href) return null;
+    if (isInInputField()) return null;
     if ((e.key === 'p' || e.key === 'P')) toggleUIVisibility();
     if (e.key === '[') getScreenshotImage();
     if (e.key === ']') getScreenshotImage(true);
