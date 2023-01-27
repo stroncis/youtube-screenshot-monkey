@@ -4,8 +4,7 @@
 // @version      0.1
 // @description  Captures current frame of the video and lets to disable any UI elements that overlay video.
 // @author       Martynas Shnaresys
-// @match        https://*.youtube.com/watch*
-// @run-at       document-end
+// @match        https://*.youtube.com/*
 // @icon         https://www.google.com/s2/favicons?domain=youtube.com
 // @grant        GM_setClipboard
 // @grant        unsafeWindow
@@ -23,7 +22,13 @@ const metaData = {
 };
 
 
-/** */
+/**
+ * Changes time duration string format
+ * 
+ * @param { string } duration Duration string 00:00:00:00
+ * 
+ * @returns { string } New duration string 00d 00h 00m 00s
+ */
 const formatDurationTime = (duration) => {
     const split = duration.split(':');
     if (!split || !split.length) return null;
@@ -35,7 +40,10 @@ const formatDurationTime = (duration) => {
 };
 
 
-/** */
+/**
+ * Copying formatted video url to clipboard
+ * [title] | [duration] | [short_url]
+ */
 const copyVideoLink = () => {
     const duration = formatDurationTime(metaData.duration);
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
@@ -73,18 +81,30 @@ const getDefaultThumbnail = async (attempt = 0) => {
 };
 
 
-/** */
+/**
+ * Gets element text value
+ * 
+ * @param { string | HTMLElement } element Selector or element
+ * 
+ * @returns { string } text value from element
+ */
 const getElementText = (element) => {
     if (typeof element === 'string' || element instanceof String) {
         element = document.querySelector(element);
-        if (!element) return '[no value]';
+        if (!element) return '';
     }
     const text = element.textContent.trim();
     return text;
 };
 
 
-/** */
+/**
+ * Composes short url for video
+ * 
+ * @param { string } id Video id
+ * 
+ * @returns { string } short video url
+ */
 const getShortUrl = (id) => {
     const shortUrl = `https://youtu.be/${id}`;
     return shortUrl;
@@ -107,10 +127,12 @@ const getVideoId = (url) => {
 };
 
 
-/** */
-const updateMetaData = async () => {
+/** 
+ * Updates url, short url, video id and thumbnail globals
+*/
+const updateIdUrlsThumbnail = async () => {
     metaData.href = location.href;
-    metaData.id = getYoutubeVideoId(metaData.href);
+    metaData.id = getVideoId(metaData.href);
     metaData.short_url = getShortUrl(metaData.id);
     metaData.thumbnail = await getDefaultThumbnail();
 };
@@ -167,15 +189,7 @@ const destroyStrip = () => {
 const onUrlChange = () => {
     destroyStrip();
     toggleUIVisibility(true);
-    updateMetaData();
-};
-
-
-/** */
-const initMetaData = () => {
-    metaData.title = getElementText('.ytp-title-link');
-    metaData.duration = getElementText('.ytp-time-duration');
-    updateMetaData();
+    updateIdUrlsThumbnail();
 };
 
 
@@ -822,48 +836,69 @@ const logKey = (e) => {
 };
 
 
-/** */
-const titleAndDurationWatcher = () => {
-    const mutationFilter = (mutations) => {
-        mutations.forEach((mutant) => {
-            const { target, addedNodes } = mutant;
+/** 
+ * Looks for mutations in title and duration elements
+ * If found - updates script globals
+ * 
+ * @param { MutationRecord[] } mutations Mutation list from observer
+*/
+const updateTitleDuration = (mutations) => {
+    mutations.forEach((mutant) => {
+        const { target, addedNodes } = mutant;
 
-            const { classList } = target;
-            const hasDurationClass = classList.contains('ytp-time-duration');
-            const hasTitleClass = classList.contains('ytp-title-link');
-            const hasClass = hasDurationClass || hasTitleClass;
-            if (!hasClass) return null;
+        const { classList } = target;
+        const hasDurationClass = classList.contains('ytp-time-duration');
+        const hasTitleClass = classList.contains('ytp-title-link');
+        const hasClass = hasDurationClass || hasTitleClass;
+        if (!hasClass) return null;
 
-            const hasAdded = addedNodes.length;
-            if (!hasAdded) return null;
+        const hasAdded = addedNodes.length;
+        if (!hasAdded) return null;
 
-            const addedNodeIsText = addedNodes[0].nodeName === '#text';
-            if (!addedNodeIsText) return null;
+        const addedNodeIsText = addedNodes[0].nodeName === '#text';
+        if (!addedNodeIsText) return null;
 
-            const addedText = getElementText(addedNodes[0]);
-            if (hasDurationClass) {
-                metaData.duration = addedText;
-                return null;
-            };
-            metaData.title = addedText;
-        });
-    };
-
-    const observer = new MutationObserver(mutationFilter);
-
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+        const addedText = getElementText(addedNodes[0]);
+        if (hasDurationClass) {
+            metaData.duration = addedText;
+            return null;
+        };
+        metaData.title = addedText;
     });
 };
 
 
-window.addEventListener('popstate', onUrlChange, false);
+/**
+ * Mutation observer callback
+ * 
+ * @param { MutationRecord[] } mutations Mutation list from observer
+ */
+const doAfterMutation = (mutations) => {
+    // Ignoring all Youtube urls if they aren't watch page
+    if (!isWatchUrl()) return null;
+
+    // First startup
+    if (!metaData.href) updateIdUrlsThumbnail();
+
+    // URL changed
+    if (metaData.href !== location.href) onUrlChange();
+
+    updateTitleDuration(mutations);
+};
+
+
+/**
+ * Starts mutations observer
+ */
+const startDOMObserver = () => {
+    const observer = new MutationObserver(doAfterMutation);
+    const config = { childList: true, subtree: true };
+    observer.observe(document, config);
+};
 
 
 (() => {
     'use strict';
-    initMetaData();
-    titleAndDurationWatcher();
+    startDOMObserver();
     document.addEventListener('keydown', logKey);
 })();
