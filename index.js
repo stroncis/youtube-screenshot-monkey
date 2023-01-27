@@ -14,11 +14,11 @@
 
 
 const metaData = {
-    id: '[id]', 
-    title: '[title]', // document.title.substring(0, title.indexOf(' - YouTube'));
-    duration: '[duration]',
-    href: location.href,
-    short_url: '[short_url]', // document.querySelector('link[rel="prev"]').href;
+    id: '', 
+    title: '',
+    duration: '',
+    href: '',
+    short_url: '',
     thumbnail: {},
 };
 
