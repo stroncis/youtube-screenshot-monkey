@@ -23,6 +23,35 @@ const metaData = {
 
 
 /**
+ * Gets element text value
+ * 
+ * @param { string | HTMLElement } element Selector or element
+ * 
+ * @returns { string } text value from element
+ */
+const getElementText = (element) => {
+    if (typeof element === 'string' || element instanceof String) {
+        element = document.querySelector(element);
+        if (!element) return '';
+    }
+    const text = element.textContent.trim();
+    return text;
+};
+
+
+/**
+ * Sets video title.
+ */
+const setTitle = () => { metaData.title = getElementText('.ytp-title-link') };
+
+
+/**
+ * Sets video duration time.
+ */
+const setDuration = () => { metaData.duration = getElementText('.ytp-time-duration') };
+
+
+/**
  * Changes time duration string format
  * 
  * @param { string } duration Duration string 00:00:00:00
@@ -30,6 +59,7 @@ const metaData = {
  * @returns { string } New duration string 00d 00h 00m 00s
  */
 const formatDurationTime = (duration) => {
+    if (!duration) return '';
     const split = duration.split(':');
     if (!split || !split.length) return null;
     const reversed = [ ...split ].reverse();
@@ -45,6 +75,10 @@ const formatDurationTime = (duration) => {
  * [title] | [duration] | [short_url]
  */
 const copyVideoLink = () => {
+    // Sometimes duration is not set by mutation observer
+    if (!metaData.duration) setDuration();
+    if (!metaData.title) setTitle();
+
     const duration = formatDurationTime(metaData.duration);
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
@@ -78,23 +112,6 @@ const getDefaultThumbnail = async (attempt = 0) => {
     if (attempt === urls.length - 1) return image; // returns default YT error 404 image
     if (image.width === 120) return await getDefaultThumbnail(attempt + 1);
     return image;
-};
-
-
-/**
- * Gets element text value
- * 
- * @param { string | HTMLElement } element Selector or element
- * 
- * @returns { string } text value from element
- */
-const getElementText = (element) => {
-    if (typeof element === 'string' || element instanceof String) {
-        element = document.querySelector(element);
-        if (!element) return '';
-    }
-    const text = element.textContent.trim();
-    return text;
 };
 
 
@@ -324,6 +341,7 @@ const updateContainerAfterSave = (linkElement) => {
  * @return {string} File name
  **/
 const getImageName = (element) => {
+    if (!metaData.title) setTitle(); // In case, if  mutation observer misses
     const videoTime = element.getAttribute('frame-time') || '00_00';
     const videoTimeDashed = videoTime.replace(/_/g, '-');
     const videoTitleTextWithTime = `${metaData.title} - ${videoTimeDashed}`;
