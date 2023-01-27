@@ -850,6 +850,7 @@ const logKey = (e) => {
     if (e.key === '[') getScreenshotImage();
     if (e.key === ']') getScreenshotImage(true);
     if (e.key === '\'') copyVideoLink();
+    if ((e.key === 'u' || e.key === 'U')) consoleGlobals();
     return null;
 };
 
@@ -920,3 +921,7 @@ const startDOMObserver = () => {
     startDOMObserver();
     document.addEventListener('keydown', logKey);
 })();
+
+function consoleGlobals() {
+    console.log('#YtGr4 globals:', metaData);
+}
