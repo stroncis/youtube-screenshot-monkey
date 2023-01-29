@@ -65,8 +65,9 @@ const formatDurationTime = (duration) => {
     if (!split || !split.length) return null;
     const reversed = [ ...split ].reverse();
     const timeNotations = ['s', 'm', 'h', 'd'];
-    const notated = reversed.map((val, idx) => `${parseInt(val)}${timeNotations[idx]}`);
-    const timeString = notated.reverse().join(' ');
+    const notated = reversed.map((val, idx) => parseInt(val) ? `${parseInt(val)}${timeNotations[idx]}` : '');
+    const strippedZeroes = notated.filter(Boolean);
+    const timeString = strippedZeroes.reverse().join(' ');
     return timeString;
 };
 
