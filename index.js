@@ -6,6 +6,7 @@
 // @author       Martynas Shnaresys
 // @match        https://*.youtube.com/*
 // @icon         https://www.google.com/s2/favicons?domain=youtube.com
+// @run-at       document-start
 // @grant        GM_setClipboard
 // @grant        unsafeWindow
 // @license      MIT
@@ -75,10 +76,6 @@ const formatDurationTime = (duration) => {
  * [title] | [duration] | [short_url]
  */
 const copyVideoLink = () => {
-    // Sometimes duration is not set by mutation observer
-    if (!metaData.duration) setDuration();
-    if (!metaData.title) setTitle();
-
     const duration = formatDurationTime(metaData.duration);
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
@@ -868,24 +865,22 @@ const updateTitleDuration = (mutations) => {
     mutations.forEach((mutant) => {
         const { target, addedNodes } = mutant;
 
-        const { classList } = target;
-        const hasDurationClass = classList.contains('ytp-time-duration');
-        const hasTitleClass = classList.contains('ytp-title-link');
-        const hasClass = hasDurationClass || hasTitleClass;
-        if (!hasClass) return null;
+        const hasAddedNode = addedNodes.length;
+        if (!hasAddedNode) return null;
 
-        const hasAdded = addedNodes.length;
-        if (!hasAdded) return null;
+        // Directly updated element
+        const hasDurationClass = target.classList.contains('ytp-time-duration');
+        if (hasDurationClass) metaData.duration = getElementText(target);
+        const hasTitleClass = target.classList.contains('ytp-title-link');
+        if (hasTitleClass) metaData.title = getElementText(target);
 
-        const addedNodeIsText = addedNodes[0].nodeName === '#text';
-        if (!addedNodeIsText) return null;
+        // Parent updated
+        const durationChild = target.querySelector('.ytp-time-duration');
+        if (durationChild) metaData.duration = getElementText(durationChild);
+        const titleChild = target.querySelector('.ytp-title-link');
+        if (titleChild) metaData.title = getElementText(titleChild);
 
-        const addedText = getElementText(addedNodes[0]);
-        if (hasDurationClass) {
-            metaData.duration = addedText;
-            return null;
-        };
-        metaData.title = addedText;
+        return null;
     });
 };
 
