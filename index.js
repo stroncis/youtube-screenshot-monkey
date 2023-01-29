@@ -99,7 +99,7 @@ const copyVideoLink = () => {
  * 
  * @returns {Promise<HTMLImageElement>} image element with default Youtube thumbnail
  */
-const getDefaultThumbnail = async (attempt = 0) => {
+const setDefaultThumbnail = async (attempt = 0) => {
     const urls = [
         `https://i3.ytimg.com/vi/${metaData.id}/maxresdefault.jpg`,
         `https://i3.ytimg.com/vi/${metaData.id}/0.jpg`,
@@ -110,8 +110,9 @@ const getDefaultThumbnail = async (attempt = 0) => {
     image.src = urls[attempt];
     await image.decode();
     if (attempt === urls.length - 1) return image; // returns default YT error 404 image
-    if (image.width === 120) return await getDefaultThumbnail(attempt + 1);
-    return image;
+    if (image.width === 120) return await setDefaultThumbnail(attempt + 1);
+    metaData.thumbnail = image;
+    return null;
 };
 
 
@@ -122,9 +123,9 @@ const getDefaultThumbnail = async (attempt = 0) => {
  * 
  * @returns { string } short video url
  */
-const getShortUrl = (id) => {
+const setShortUrl = (id) => {
     const shortUrl = `https://youtu.be/${id}`;
-    return shortUrl;
+    metaData.short_url = shortUrl;
 };
 
 
@@ -135,12 +136,12 @@ const getShortUrl = (id) => {
  * 
  * @returns {string} Youtube video id
  */
-const getVideoId = (url) => {
+const setVideoId = (url) => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
     const id = (match&&match[7].length==11)? match[7] : false;
     if (!id) console.warn(`#YtGr4 No video id found for "${url}"`);
-    return id;
+    metaData.id = id;
 };
 
 
@@ -149,9 +150,11 @@ const getVideoId = (url) => {
 */
 const updateIdUrlsThumbnail = async () => {
     metaData.href = location.href;
-    metaData.id = getVideoId(metaData.href);
-    metaData.short_url = getShortUrl(metaData.id);
-    metaData.thumbnail = await getDefaultThumbnail();
+    setDuration();
+    setTitle();
+    setVideoId(metaData.href);
+    setShortUrl(metaData.id);
+    await setDefaultThumbnail();
 };
 
 
