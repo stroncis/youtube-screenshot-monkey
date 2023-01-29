@@ -83,10 +83,10 @@ const copyVideoLink = () => {
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
         () => {
-          console.log(`Link copied: ${message}`);
+          console.log(`#YtGr4 Link copied: ${message}`);
         },
         (e) => {
-            console.warn('Link copy failed', e);
+            console.warn('#YtGr4 Link copy failed', e);
         }
       );
 };
@@ -464,10 +464,10 @@ const writeBlobToClipboard = (blob) => {
     const clipboardItemInput = new ClipboardItem({ 'image/png': blob });
     navigator.clipboard.write([clipboardItemInput]).then(
         () => {
-            console.log('Image copied.');
+            console.log('#YtGr4 Image copied.');
         },
         () => {
-            console.warn('Image copy to clipboard failed.');
+            console.warn('#YtGr4 Image copy to clipboard failed.');
         }
     );
 };
@@ -485,7 +485,7 @@ const convertImageToBlob = async (image) => {
     const height = image.naturalHeight;
     const canvas = getCanvas({ image, width, height });
     const blob = await new Promise(resolve => canvas.toBlob(resolve));
-    canvas.onerror = err => console.error('Canvas error:', err);
+    canvas.onerror = err => console.error('#YtGr4 Canvas error:', err);
     return blob;
 };
 
@@ -504,7 +504,7 @@ const createImageElement = (base64img) => {
             resolve(image);
         });
         image.addEventListener('error', (err) => {
-            console.error('Error encountered while handling image:', err);
+            console.error('#YtGr4 Error encountered while handling image:', err);
         });
         image.src = base64img;
     });
@@ -792,7 +792,7 @@ const initScreenshotStrip = async () => {
     createScreenshotStrip();
     await addDefaultThumbnail();
         // .catch((e) => {
-        //     console.error('#Tamper addDefaultThumbnail err:', e.message);
+        //     console.error('#YtGr4 addDefaultThumbnail err:', e.message);
         // });
 };
 
@@ -806,7 +806,7 @@ const getScreenshotImage = async (isResized) => {
     const videoStream = document.querySelector('.video-stream');
     const frame = captureFrame(videoStream, isResized);
     if (!frame.width) {
-        console.log('Cannot access frame, possibly video not loaded. OVERLAY NOW!');
+        console.log('#YtGr4 Cannot access frame, possibly video not loaded. OVERLAY NOW!');
         return null;
     }
 
