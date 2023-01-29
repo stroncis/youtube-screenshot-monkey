@@ -55,9 +55,9 @@ const setDuration = () => { metaData.duration = getElementText('.ytp-time-durati
 /**
  * Changes time duration string format
  * 
- * @param { string } duration Duration string 00:00:00:00
+ * @param { string } duration Duration string 01:03:00:12
  * 
- * @returns { string } New duration string 00d 00h 00m 00s
+ * @returns { string } New duration string 1d 3h 12s
  */
 const formatDurationTime = (duration) => {
     if (!duration) return '';
