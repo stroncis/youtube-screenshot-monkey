@@ -5,8 +5,7 @@ Youtube screenshot helper script for ViolentMonkey / TamperMonkey / GreaseMonkey
 * Grab full size or actual viewport sized frame
 * Copy frames to clipboard or save as file
 * Copy video url with title and duration
-* Disable video overlays to make less polluted video viewport
-* Disabled overlays helps for OS native or 3rd party screenshot tools
+* Disable video overlays to make less polluted video viewport (for OS native or 3rd party screenshot tools)
 
 ## Keys
 Press <kbd>[</kbd> for full frame size  
