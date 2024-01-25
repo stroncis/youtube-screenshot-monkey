@@ -77,6 +77,7 @@ const formatDurationTime = (duration) => {
  * [title] | [duration] | [short_url]
  */
 const copyVideoLink = () => {
+    if (!metaData.title) setTitle(); // In case, if  mutation observer misses
     const duration = formatDurationTime(metaData.duration);
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
@@ -360,7 +361,6 @@ const getImageName = (element) => {
 const saveImageEventHandler = (event) => {
     event.preventDefault();
     const target = event.target;
-    target.style.opacity = '0.5';
 
     const linkElement = target.offsetParent;
     const imageElement = linkElement.firstChild.firstChild;
@@ -370,6 +370,7 @@ const saveImageEventHandler = (event) => {
 
     linkElement.click();
     updateContainerAfterSave(linkElement);
+    target.style.opacity = '0.5';
 };
 
 
@@ -520,13 +521,13 @@ const createImageElement = (base64img) => {
 const copyImageEventHandler = async (event) => {
     event.preventDefault();
     const target = event.target;
-    target.style.opacity = '0.5';
 
     const targetImageElement = target.offsetParent.firstChild.firstChild;
     const imageBase64Data = targetImageElement.src;
     const newImageElement = await createImageElement(imageBase64Data);
     const blob = await convertImageToBlob(newImageElement);
     writeBlobToClipboard(blob);
+    target.style.opacity = '0.5';
 };
 
 
