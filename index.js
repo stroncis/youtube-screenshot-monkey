@@ -129,19 +129,40 @@ const setShortUrl = (id) => {
 
 
 /**
+ * Parses query parameters from a URL and returns them as an object.
+ *
+ * @param {string} url The URL containing query parameters.
+ *
+ * @returns {object} An object containing all the query parameters.
+ */
+const parseQueryParams = (url) => {
+    const queryParams = {};
+    const queryString = url.split('?')[1];
+    if (queryString) {
+        const pairs = queryString.split('&');
+        pairs.forEach(pair => {
+            const [key, value] = pair.split('=');
+            queryParams[key] = decodeURIComponent(value || '');
+        });
+    }
+    return queryParams;
+};
+
+
+/**
  * Extracts YT video id.
- * 
+ *
  * @param {string} url Youtube video url
- * 
+ *
  * @returns {string} Youtube video id
  */
 const setVideoId = (url) => {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    const id = (match&&match[7].length==11)? match[7] : false;
+    const params = parseQueryParams(url);
+    const id = params.v;
     if (!id) console.warn(`#YtGr4 No video id found for "${url}"`);
     metaData.id = id;
 };
+
 
 
 /** 
