@@ -73,12 +73,33 @@ const formatDurationTime = (duration) => {
 
 
 /**
+ * Checking for an error message container. If any - return message.
+ * @returns {string} Error message or empty string
+ */
+const checkForError = () => {
+    const errorMessage = document.getElementById('reason');
+    if (errorMessage) return errorMessage.textContent;
+    return '';
+}
+
+
+/**
  * Copying formatted video url to clipboard
  * [title] | [duration] | [short_url]
  */
 const copyVideoLink = () => {
+    if (!metaData.short_url) {
+        alert('URL is missing, cannot copy.');
+        return;
+    }
+    const error = checkForError();
     if (!metaData.title) setTitle(); // In case, if  mutation observer misses
     const duration = formatDurationTime(metaData.duration);
+    if (!metaData.title && !duration && error) {
+        alert(`Cannot copy, Youtube error: ${error}`);
+        return;
+    }
+
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
         () => {
