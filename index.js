@@ -794,9 +794,13 @@ const getImageElement = canvas => {
     const element = document.createElement('img');
     element.style.display = 'block';
     element.style['margin-right'] = '8px';
+    element.style.cursor = 'pointer';
     element.src = getImageBase64(canvas);
     element.alt = 'Captured frame';
     element.width = '168';
+
+    element.addEventListener('click', openImageModal);
+
     return element;
 };
 
@@ -1011,3 +1015,151 @@ const startDOMObserver = () => {
 function consoleGlobals() {
     console.log('#YtGr4 globals:', metaData);
 }
+
+/**
+ * Creates a modal overlay for full-size image preview.
+ *
+ * @param {string} imageSrc The base64 image source
+ * @param {string} imageTitle The title/filename for the image
+ * @returns {HTMLDivElement} Modal container element
+ */
+const createImageModal = (imageSrc, imageTitle) => {
+    const modal = document.createElement('div');
+    modal.id = 'image-modal';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    modal.style.zIndex = '10000';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.opacity = '0';
+    modal.style.transition = 'opacity 0.3s ease-in-out';
+    modal.style.cursor = 'pointer';
+
+    // Modal content container
+    const modalContent = document.createElement('div');
+    modalContent.style.position = 'relative';
+    modalContent.style.maxWidth = '95%';
+    modalContent.style.maxHeight = '95%';
+    modalContent.style.textAlign = 'center';
+
+    // Full-size image
+    const fullImage = document.createElement('img');
+    fullImage.src = imageSrc;
+    fullImage.style.maxWidth = '100%';
+    fullImage.style.maxHeight = '100%';
+    fullImage.style.objectFit = 'contain';
+    fullImage.style.borderRadius = '8px';
+    fullImage.style.border = '2px solid rgba(100, 149, 237, 0.5)';
+    fullImage.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.5)';
+
+    // Image title overlay
+    const titleOverlay = document.createElement('div');
+    titleOverlay.style.position = 'absolute';
+    titleOverlay.style.bottom = '10px';
+    titleOverlay.style.left = '50%';
+    titleOverlay.style.transform = 'translateX(-50%)';
+    titleOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    titleOverlay.style.color = 'white';
+    titleOverlay.style.padding = '8px 16px';
+    titleOverlay.style.borderRadius = '4px';
+    titleOverlay.style.fontSize = '14px';
+    titleOverlay.style.fontFamily = 'Arial, sans-serif';
+    titleOverlay.textContent = imageTitle || 'Screenshot Preview';
+
+    // Close button
+    const closeButton = document.createElement('div');
+    closeButton.textContent = '×';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '10px';
+    closeButton.style.right = '10px';
+    closeButton.style.fontSize = '30px';
+    closeButton.style.color = 'white';
+    closeButton.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    closeButton.style.width = '40px';
+    closeButton.style.height = '40px';
+    closeButton.style.borderRadius = '50%';
+    closeButton.style.display = 'flex';
+    closeButton.style.alignItems = 'center';
+    closeButton.style.justifyContent = 'center';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.transition = 'background-color 0.2s';
+
+    closeButton.addEventListener('mouseenter', () => {
+        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+    });
+
+    closeButton.addEventListener('mouseleave', () => {
+        closeButton.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    });
+
+    modalContent.appendChild(fullImage);
+    modalContent.appendChild(titleOverlay);
+    modalContent.appendChild(closeButton);
+    modal.appendChild(modalContent);
+
+    return modal;
+};
+
+/**
+ * Shows the image modal with fade-in animation.
+ *
+ * @param {HTMLDivElement} modal The modal element to show
+ */
+const showModal = modal => {
+    document.body.appendChild(modal);
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
+};
+
+/**
+ * Hides and removes the image modal.
+ *
+ * @param {HTMLDivElement} modal The modal element to hide
+ */
+const hideModal = modal => {
+    modal.style.opacity = '0';
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 300);
+};
+
+/**
+ * Handles click on image to open modal preview.
+ *
+ * @param {Event} event Click event on the image
+ */
+const openImageModal = event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const imageElement = event.target;
+    const imageSrc = imageElement.src;
+
+    const imageContainer = imageElement.closest('[id^="screenshot-"]');
+    const frameTimeAttr = imageContainer ? imageContainer.id.split('-').pop() : '0';
+    const imageTitle = `Screenshot at ${frameTimeAttr}s`;
+
+    const modal = createImageModal(imageSrc, imageTitle);
+
+    modal.addEventListener('click', () => {
+        hideModal(modal);
+    });
+
+    const escHandler = event => {
+        if (event.key === 'Escape') {
+            hideModal(modal);
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    showModal(modal);
+};
