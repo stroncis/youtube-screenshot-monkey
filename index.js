@@ -548,17 +548,18 @@ const createWidthOverlayElement = width => {
  * Writes image blob data to clipboard.
  *
  * @param {Blob} blob - something from Playdead's Inside finale
+ * @returns {Promise<boolean>} Promise that resolves to true on success, false on failure
  */
-const writeBlobToClipboard = blob => {
-    const clipboardItemInput = new ClipboardItem({ 'image/png': blob });
-    navigator.clipboard.write([clipboardItemInput]).then(
-        () => {
-            console.log('#YtGr4 Image copied.');
-        },
-        () => {
-            console.warn('#YtGr4 Image copy to clipboard failed.');
-        }
-    );
+const writeBlobToClipboard = async blob => {
+    try {
+        const clipboardItemInput = new ClipboardItem({ 'image/png': blob });
+        await navigator.clipboard.write([clipboardItemInput]);
+        console.log('#YtGr4 Image copied.');
+        return true;
+    } catch (error) {
+        console.warn('#YtGr4 Image copy to clipboard failed:', error);
+        return false;
+    }
 };
 
 /**
@@ -605,13 +606,36 @@ const createImageElement = base64img => {
 const copyImageEventHandler = async event => {
     event.preventDefault();
     const target = event.target;
+    const linkElement = target.offsetParent;
+    const imageContainer = linkElement.offsetParent;
 
-    const targetImageElement = target.offsetParent.firstChild.firstChild;
-    const imageBase64Data = targetImageElement.src;
-    const newImageElement = await createImageElement(imageBase64Data);
-    const blob = await convertImageToBlob(newImageElement);
-    writeBlobToClipboard(blob);
-    target.style.opacity = '0.5';
+    target.style.cursor = 'wait';
+    target.textContent = 'Copying...';
+    target.style.opacity = '0.7';
+
+    try {
+        const targetImageElement = target.offsetParent.firstChild.firstChild;
+        const imageBase64Data = targetImageElement.src;
+        const newImageElement = await createImageElement(imageBase64Data);
+        const blob = await convertImageToBlob(newImageElement);
+        const success = await writeBlobToClipboard(blob);
+
+        target.textContent = 'Copy';
+        target.style.cursor = 'pointer';
+        target.style.opacity = '0.5';
+
+        if (success) {
+            showStatusMessage(imageContainer, 'COPIED!', true);
+        } else {
+            showStatusMessage(imageContainer, 'COPY FAILED!', false);
+        }
+    } catch (error) {
+        console.error('#YtGr4 Copy operation failed:', error);
+        target.textContent = 'Copy';
+        target.style.cursor = 'pointer';
+        target.style.opacity = '1';
+        showStatusMessage(imageContainer, 'COPY FAILED!', false);
+    }
 };
 
 /**
