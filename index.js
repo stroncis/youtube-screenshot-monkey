@@ -12,9 +12,8 @@
 // @license      MIT
 // ==/UserScript==
 
-
 const metaData = {
-    id: '', 
+    id: '',
     title: '',
     duration: '',
     href: '',
@@ -22,15 +21,14 @@ const metaData = {
     thumbnail: {},
 };
 
-
 /**
  * Gets element text value
- * 
+ *
  * @param { string | HTMLElement } element Selector or element
- * 
+ *
  * @returns { string } text value from element
  */
-const getElementText = (element) => {
+const getElementText = element => {
     if (typeof element === 'string' || element instanceof String) {
         element = document.querySelector(element);
         if (!element) return '';
@@ -39,38 +37,38 @@ const getElementText = (element) => {
     return text;
 };
 
-
 /**
  * Sets video title.
  */
-const setTitle = () => { metaData.title = getElementText('.ytp-title-link') };
-
+const setTitle = () => {
+    metaData.title = getElementText('.ytp-title-link');
+};
 
 /**
  * Sets video duration time.
  */
-const setDuration = () => { metaData.duration = getElementText('.ytp-time-duration') };
-
+const setDuration = () => {
+    metaData.duration = getElementText('.ytp-time-duration');
+};
 
 /**
  * Changes time duration string format
- * 
+ *
  * @param { string } duration Duration string 01:03:00:12
- * 
+ *
  * @returns { string } New duration string 1d 3h 12s
  */
-const formatDurationTime = (duration) => {
+const formatDurationTime = duration => {
     if (!duration) return '';
     const split = duration.split(':');
     if (!split || !split.length) return null;
-    const reversed = [ ...split ].reverse();
+    const reversed = [...split].reverse();
     const timeNotations = ['s', 'm', 'h', 'd'];
-    const notated = reversed.map((val, idx) => parseInt(val) ? `${parseInt(val)}${timeNotations[idx]}` : '');
+    const notated = reversed.map((val, idx) => (parseInt(val) ? `${parseInt(val)}${timeNotations[idx]}` : ''));
     const strippedZeroes = notated.filter(Boolean);
     const timeString = strippedZeroes.reverse().join(' ');
     return timeString;
 };
-
 
 /**
  * Checking for an error message container. If any - return message.
@@ -80,8 +78,7 @@ const checkForError = () => {
     const errorMessage = document.getElementById('reason');
     if (errorMessage) return errorMessage.textContent;
     return '';
-}
-
+};
 
 /**
  * Copying formatted video url to clipboard
@@ -103,20 +100,19 @@ const copyVideoLink = () => {
     const message = `${metaData.title} | ${duration} | ${metaData.short_url}`;
     navigator.clipboard.writeText(message).then(
         () => {
-          console.log(`#YtGr4 Link copied: ${message}`);
+            console.log(`#YtGr4 Link copied: ${message}`);
         },
-        (e) => {
+        e => {
             console.warn('#YtGr4 Link copy failed', e);
         }
-      );
+    );
 };
-
 
 /**
  * Fetches default thumbnail for current video.
- * 
+ *
  * @param {number | undefined} attempt Number of attempts
- * 
+ *
  * @returns {Promise<HTMLImageElement>} image element with default Youtube thumbnail
  */
 const setDefaultThumbnail = async (attempt = 0) => {
@@ -135,19 +131,17 @@ const setDefaultThumbnail = async (attempt = 0) => {
     return null;
 };
 
-
 /**
  * Composes short url for video
- * 
+ *
  * @param { string } id Video id
- * 
+ *
  * @returns { string } short video url
  */
-const setShortUrl = (id) => {
+const setShortUrl = id => {
     const shortUrl = `https://youtu.be/${id}`;
     metaData.short_url = shortUrl;
 };
-
 
 /**
  * Parses query parameters from a URL and returns them as an object.
@@ -156,7 +150,7 @@ const setShortUrl = (id) => {
  *
  * @returns {object} An object containing all the query parameters.
  */
-const parseQueryParams = (url) => {
+const parseQueryParams = url => {
     const queryParams = {};
     const queryString = url.split('?')[1];
     if (queryString) {
@@ -169,7 +163,6 @@ const parseQueryParams = (url) => {
     return queryParams;
 };
 
-
 /**
  * Extracts YT video id.
  *
@@ -177,18 +170,16 @@ const parseQueryParams = (url) => {
  *
  * @returns {string} Youtube video id
  */
-const setVideoId = (url) => {
+const setVideoId = url => {
     const params = parseQueryParams(url);
     const id = params.v;
     if (!id) console.warn(`#YtGr4 No video id found for "${url}"`);
     metaData.id = id;
 };
 
-
-
-/** 
+/**
  * Updates url, short url, video id and thumbnail globals
-*/
+ */
 const updateIdUrlsThumbnail = async () => {
     metaData.href = location.href;
     setDuration();
@@ -198,13 +189,12 @@ const updateIdUrlsThumbnail = async () => {
     await setDefaultThumbnail();
 };
 
-
 /**
  * Toggles Youtube video control and vignette visibility.
  *
  * @param { boolean } restore - if true, UI elements visibility is restored
  */
-const toggleUIVisibility = (restore) => {
+const toggleUIVisibility = restore => {
     const singleIdentificators = [
         '.ytp-gradient-top',
         '.ytp-gradient-bottom',
@@ -222,15 +212,16 @@ const toggleUIVisibility = (restore) => {
         '.iv-branding',
         '.ytp-ce-playlist',
         '.html5-endscreen',
-        '.ytp-paid-content-overlay'
+        '.ytp-paid-content-overlay',
     ];
     // const multipleIdentificators = ['.ytp-ce-element'];
     const elements = singleIdentificators.map(id => document.querySelector(`${id}`));
     const invisible = elements[0].style.display;
     const state = invisible || restore ? '' : 'none';
-    elements.forEach((element) => { element ? element.style.display = state : ''; });
+    elements.forEach(element => {
+        element ? (element.style.display = state) : '';
+    });
 };
-
 
 /**
  * Destroys the strip.
@@ -243,7 +234,6 @@ const destroyStrip = () => {
     screenshotStrip.remove();
 };
 
-
 /**
  * Destroy the strip on url change (SPA specific), restore UI visibility, preload new thumbnail.
  * Prevents from transfering captured frames to a "new" video container.
@@ -254,7 +244,6 @@ const onUrlChange = () => {
     updateIdUrlsThumbnail();
 };
 
-
 /**
  * @typedef {Object} CanvasData
  * @property {HTMLImageElement | VideoFrame} image image data
@@ -262,15 +251,14 @@ const onUrlChange = () => {
  * @property {number} height Height of window
  */
 
-
 /**
  * Creates canvas element.
- * 
+ *
  * @param {CanvasData} data Accepts object with image data, width and height
- * 
+ *
  * @returns { HTMLCanvasElement }
  */
-const getCanvas = (data) => {
+const getCanvas = data => {
     const { image, width, height } = data;
 
     const canvas = document.createElement('canvas');
@@ -282,7 +270,6 @@ const getCanvas = (data) => {
     return canvas;
 };
 
-
 /**
  * @typedef {Object} CanvasImage
  * @property {Canvas} frame.canvas image with frame data
@@ -290,7 +277,6 @@ const getCanvas = (data) => {
  * @property {number} frame.height Height of window
  * @property {number} frame.time Frame position represented in seconds with fractions of seconds
  */
-
 
 /**
  * Creates object with canvas image, width, height and time.
@@ -301,7 +287,7 @@ const getCanvas = (data) => {
  * @returns {CanvasImage} Frame data with it's meta
  */
 const getImageCanvasWithMeta = (image, width, height, time) => {
-    const canvas = getCanvas({image, width, height});
+    const canvas = getCanvas({ image, width, height });
 
     return {
         canvas,
@@ -310,7 +296,6 @@ const getImageCanvasWithMeta = (image, width, height, time) => {
         time: time || 0,
     };
 };
-
 
 /**
  * Captures a image frame from the provided video element.
@@ -322,13 +307,12 @@ const getImageCanvasWithMeta = (image, width, height, time) => {
  */
 const captureFrame = (videoStream, isResized) => {
     const { videoWidth, videoHeight, clientWidth, currentTime: time } = videoStream;
-    const getResizedHeight = () => Math.round(videoHeight * clientWidth / videoWidth);
+    const getResizedHeight = () => Math.round((videoHeight * clientWidth) / videoWidth);
     const width = isResized ? clientWidth : videoWidth;
     const height = isResized ? getResizedHeight() : videoHeight;
     const canvasFrame = getImageCanvasWithMeta(videoStream, width, height, time);
     return canvasFrame;
 };
-
 
 /**
  * Converts seconds into hh:mm:ss format
@@ -337,7 +321,7 @@ const captureFrame = (videoStream, isResized) => {
  *
  * @returns {string} formatted time
  */
-const hoursMinutesSeconds = (seconds) => {
+const hoursMinutesSeconds = seconds => {
     return [3600, 60]
         .reduceRight(
             (p, b) => r => [Math.floor(r / b)].concat(p(r % b)),
@@ -346,7 +330,6 @@ const hoursMinutesSeconds = (seconds) => {
         .map(a => a.toString().padStart(2, '0'))
         .join(':');
 };
-
 
 /**
  * Generates HTML element's id attribute value.
@@ -360,16 +343,18 @@ const hoursMinutesSeconds = (seconds) => {
 const generateElementId = (idLength, charSet) => {
     const chars = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_☺';
     const selectChar = () => chars.charAt(~~(Math.random() * chars.length));
-    const id = Array(idLength).fill(0).map(() => selectChar()).join('');
+    const id = Array(idLength)
+        .fill(0)
+        .map(() => selectChar())
+        .join('');
     return id;
 };
-
 
 /**
  * Changes opacity of the saved screenshot in strip.
  * Removes attributes from the element to prevent from being selected directly.
  **/
-const updateContainerAfterSave = (linkElement) => {
+const updateContainerAfterSave = linkElement => {
     linkElement.removeAttribute('href');
     linkElement.removeAttribute('download');
 
@@ -378,14 +363,13 @@ const updateContainerAfterSave = (linkElement) => {
     imageContainer.style.opacity = '0.34567890';
 };
 
-
 /**
  * Gets a screenshot image name from the video title.
- * 
+ *
  * @param {EventTarget} element Clicked element
  * @return {string} File name
  **/
-const getImageName = (element) => {
+const getImageName = element => {
     if (!metaData.title) setTitle(); // In case, if  mutation observer misses
     const videoTime = element.getAttribute('frame-time') || '00_00';
     const videoTimeDashed = videoTime.replace(/_/g, '-');
@@ -445,13 +429,12 @@ const showStatusMessage = (container, message, isSuccess = true) => {
 
 /**
  * Downloads image on click event.
- * 
+ *
  * @param {Event} event click event
  **/
-const saveImageEventHandler = (event) => {
+const saveImageEventHandler = event => {
     event.preventDefault();
     const target = event.target;
-
     const linkElement = target.offsetParent;
     const imageContainer = linkElement.offsetParent;
 
@@ -483,13 +466,12 @@ const saveImageEventHandler = (event) => {
     }
 };
 
-
 /**
  * Removes image from the strip.
- * 
+ *
  * @param {Event} event - click event
  **/
-const removeImageEventHandler = (event) => {
+const removeImageEventHandler = event => {
     event.preventDefault();
     const screenshotStrip = document.querySelector('#screenshot-strip');
     const imageContainer = event.target.offsetParent.offsetParent;
@@ -497,18 +479,16 @@ const removeImageEventHandler = (event) => {
     singleScreenshot ? screenshotStrip.remove() : imageContainer.remove();
 };
 
-
 /**
  * @typedef {Object} TextOverlayData
  * @property {boolean | undefined} data.active - if element is active, mouse cursor is changed to 'pointer'
  */
 
-
 /**
  * Creates overlay text element.
  *
  * @param {TextOverlayData | undefined} data - config options for overlay element
- * 
+ *
  * @returns { HTMLParagraphElement } Returns empty overlay information element
  */
 const createOverlayTextElement = (data = {}) => {
@@ -529,15 +509,14 @@ const createOverlayTextElement = (data = {}) => {
     return element;
 };
 
-
 /**
  * Creates overlay displaying captured frame time in video.
  *
  * @param {number} time frame time location in video
- * 
+ *
  * @returns {HTMLParagraphElement} Returns time overlay element
  */
-const createTimeOverlayElement = (time) => {
+const createTimeOverlayElement = time => {
     const overlay = createOverlayTextElement();
     overlay.style.bottom = '0';
     overlay.style.right = '0';
@@ -548,15 +527,14 @@ const createTimeOverlayElement = (time) => {
     return overlay;
 };
 
-
 /**
  * Creates overlay displaying width of the captured image.
  *
  * @param {number} width frame with
- * 
+ *
  * @returns {HTMLParagraphElement} Returns image width overlay element
  */
-const createWidthOverlayElement = (width) => {
+const createWidthOverlayElement = width => {
     const overlay = createOverlayTextElement();
     overlay.style.bottom = '0';
     overlay.style.left = '0';
@@ -566,13 +544,12 @@ const createWidthOverlayElement = (width) => {
     return overlay;
 };
 
-
 /**
  * Writes image blob data to clipboard.
  *
  * @param {Blob} blob - something from Playdead's Inside finale
  */
-const writeBlobToClipboard = (blob) => {
+const writeBlobToClipboard = blob => {
     const clipboardItemInput = new ClipboardItem({ 'image/png': blob });
     navigator.clipboard.write([clipboardItemInput]).then(
         () => {
@@ -584,15 +561,14 @@ const writeBlobToClipboard = (blob) => {
     );
 };
 
-
 /**
  * Converts loaded image to a blob.
  *
  * @param {HTMLImageElement} image - image element
- * 
+ *
  * @returns {Promise<Blob>} binary large object!
  */
-const convertImageToBlob = async (image) => {
+const convertImageToBlob = async image => {
     const width = image.naturalWidth;
     const height = image.naturalHeight;
     const canvas = getCanvas({ image, width, height });
@@ -601,34 +577,32 @@ const convertImageToBlob = async (image) => {
     return blob;
 };
 
-
 /**
  * Creates HTMLImageElement with provided image.
  *
  * @param {string} base64img - image encoded to base64 string
- * 
+ *
  * @returns {Promise<Image>} - the image element
  */
-const createImageElement = (base64img) => {
-    return new Promise((resolve) => {
-        const image = new Image;
+const createImageElement = base64img => {
+    return new Promise(resolve => {
+        const image = new Image();
         image.addEventListener('load', () => {
             resolve(image);
         });
-        image.addEventListener('error', (err) => {
+        image.addEventListener('error', err => {
             console.error('#YtGr4 Error encountered while handling image:', err);
         });
         image.src = base64img;
     });
 };
 
-
 /**
  * Handles click on image copy overlay.
  *
  * @param {Event} event event triggered by clicking the copy overlay element
  */
-const copyImageEventHandler = async (event) => {
+const copyImageEventHandler = async event => {
     event.preventDefault();
     const target = event.target;
 
@@ -640,10 +614,9 @@ const copyImageEventHandler = async (event) => {
     target.style.opacity = '0.5';
 };
 
-
 /**
  * Creates screenshot COPY overlay.
- * 
+ *
  * @returns {HTMLParagraphElement} Returns copy overlay element
  **/
 const createCopyOverlayElement = () => {
@@ -659,15 +632,14 @@ const createCopyOverlayElement = () => {
     return overlay;
 };
 
-
 /**
  * Creates screenshot SAVE overlay.
  *
  * @param {number} time frame time location in video
- * 
+ *
  * @returns {HTMLParagraphElement} Returns save overlay element
  */
-const createSaveOverlayElement = (time) => {
+const createSaveOverlayElement = time => {
     const overlay = createOverlayTextElement({ active: true });
     overlay.style.top = '20px'; // 4+12+4
     overlay.style.right = '0';
@@ -683,10 +655,9 @@ const createSaveOverlayElement = (time) => {
     return overlay;
 };
 
-
 /**
  * Creates screenshot REMOVE overlay.
- * 
+ *
  * @returns {HTMLParagraphElement} overlay element to remove frame from strip
  **/
 const createRemoveOverlayElement = () => {
@@ -702,13 +673,12 @@ const createRemoveOverlayElement = () => {
     return overlay;
 };
 
-
 /**
  * Waits for an element in DOM.
  * Could be done without blocking, though i see no reason for a single purpose script.
  */
-const waitForElement = (selector) => {
-    return new Promise((resolve) => {
+const waitForElement = selector => {
+    return new Promise(resolve => {
         if (document.querySelector(selector)) {
             return resolve(document.querySelector(selector));
         }
@@ -722,23 +692,22 @@ const waitForElement = (selector) => {
 
         observer.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
         });
 
         return null;
     });
 };
 
-
 /**
  * Creates screenshot image container.
  * Adds event listeners for image opacity.
  *
  * @param {number} time - time of the frame
- * 
+ *
  * @returns {HTMLDivElement} Returns div image container
  **/
-const createImageContainer = (time) => {
+const createImageContainer = time => {
     const element = document.createElement('div');
     element.style.display = 'inline-block';
     element.style.position = 'relative';
@@ -759,7 +728,6 @@ const createImageContainer = (time) => {
 
     return element;
 };
-
 
 /**
  * Creates screenshot image wrapper link element.
@@ -782,25 +750,23 @@ const createActiveLink = () => {
     return element;
 };
 
-
 /**
  * Converts canvas image into base64 string.
- * 
+ *
  * @param {HTMLCanvasElement} canvas Canvas element
- * 
+ *
  * @returns {string} Canvas converted to base64 image string
  */
-const getImageBase64 = (canvas) => canvas.toDataURL('image/png'); // dataURL.replace(/^data:image\/?[A-z]*;base64,/);
-
+const getImageBase64 = canvas => canvas.toDataURL('image/png'); // dataURL.replace(/^data:image\/?[A-z]*;base64,/);
 
 /**
  * Creates captured frame image element.
- * 
+ *
  * @param {HTMLCanvasElement} canvas Canvas element
- * 
+ *
  * @returns {HTMLImageElement} Image loaded with base64 encoded data
  */
-const getImageElement = (canvas) => {
+const getImageElement = canvas => {
     const element = document.createElement('img');
     element.style.display = 'block';
     element.style['margin-right'] = '8px';
@@ -810,10 +776,9 @@ const getImageElement = (canvas) => {
     return element;
 };
 
-
 /**
  * Creates empty image holding element.
- * 
+ *
  * @returns {HTMLDivElement} image holder element
  */
 const createImageHolder = () => {
@@ -824,13 +789,12 @@ const createImageHolder = () => {
     return element;
 };
 
-
 /**
  * Creates element with captured frame overlays.
- * 
+ *
  * @param {number} time captured frame time position
  * @param {number} width captured frame width
- * 
+ *
  * @returns {HTMLDivElement}
  */
 const createOverlaysHolder = (time, width) => {
@@ -843,13 +807,12 @@ const createOverlaysHolder = (time, width) => {
     return element;
 };
 
-
 /**
  * Snatches a frame, converts to base46, wraps it and adds to a strip.
  *
  * @param {CanvasImage} frame frame data with time and image
  */
-const addImageToStrip = async (frame) => {
+const addImageToStrip = async frame => {
     const { canvas, time, width } = frame;
 
     const image = getImageElement(canvas);
@@ -869,7 +832,6 @@ const addImageToStrip = async (frame) => {
     stripContainer.appendChild(imageContainer);
 };
 
-
 /**
  * Adds screenshots holder strip.
  */
@@ -885,7 +847,6 @@ const createScreenshotStrip = () => {
     targetElement.after(screenshotStrip);
 };
 
-
 /**
  * Adds default video thumbnail to a strip
  */
@@ -893,9 +854,8 @@ const addDefaultThumbnail = async () => {
     const width = metaData.thumbnail.width;
     const height = metaData.thumbnail.height;
     const canvas = getCanvas({ image: metaData.thumbnail, width, height });
-    addImageToStrip({ canvas, width, time: 0});
+    addImageToStrip({ canvas, width, time: 0 });
 };
-
 
 /**
  * Initiates video screenshots strip.
@@ -903,18 +863,17 @@ const addDefaultThumbnail = async () => {
 const initScreenshotStrip = async () => {
     createScreenshotStrip();
     await addDefaultThumbnail();
-        // .catch((e) => {
-        //     console.error('#YtGr4 addDefaultThumbnail err:', e.message);
-        // });
+    // .catch((e) => {
+    //     console.error('#YtGr4 addDefaultThumbnail err:', e.message);
+    // });
 };
-
 
 /**
  * Invokes the captureFrame and sends the canvas element with a frame for attachment to the strip.
  *
  * @param {boolean | undefined} isResized if true, frame is resized to DOM element's dimensions
  */
-const getScreenshotImage = async (isResized) => {
+const getScreenshotImage = async isResized => {
     const videoStream = document.querySelector('.video-stream');
     const frame = captureFrame(videoStream, isResized);
     if (!frame.width) {
@@ -928,12 +887,10 @@ const getScreenshotImage = async (isResized) => {
     return null;
 };
 
-
 /**
  * Validates video player url
  */
 const isWatchUrl = () => location.href.includes('/watch?');
-
 
 /**
  * Checks if user is in input fields
@@ -946,7 +903,6 @@ const isInInputField = () => {
     return isInSearchField || isInCommentField;
 };
 
-
 /**
  * Keypress handler.
  * Key '[' grabs full frame.
@@ -955,26 +911,25 @@ const isInInputField = () => {
  * Key 'Quote' copies video title, duration and url.
  * Keypresses ignored if focused to input fields.
  */
-const logKey = (e) => {
+const logKey = e => {
     if (!isWatchUrl() || !metaData.href) return null;
     if (isInInputField()) return null;
-    if ((e.key === 'p' || e.key === 'P')) toggleUIVisibility();
+    if (e.key === 'p' || e.key === 'P') toggleUIVisibility();
     if (e.key === '[') getScreenshotImage();
     if (e.key === ']') getScreenshotImage(true);
-    if (e.key === '\'') copyVideoLink();
-    if ((e.key === 'u' || e.key === 'U')) consoleGlobals();
+    if (e.key === "'") copyVideoLink();
+    if (e.key === 'u' || e.key === 'U') consoleGlobals();
     return null;
 };
 
-
-/** 
+/**
  * Looks for mutations in title and duration elements
  * If found - updates script globals
- * 
+ *
  * @param { MutationRecord[] } mutations Mutation list from observer
-*/
-const updateTitleDuration = (mutations) => {
-    mutations.forEach((mutant) => {
+ */
+const updateTitleDuration = mutations => {
+    mutations.forEach(mutant => {
         const { target, addedNodes } = mutant;
 
         const hasAddedNode = addedNodes.length;
@@ -996,13 +951,12 @@ const updateTitleDuration = (mutations) => {
     });
 };
 
-
 /**
  * Mutation observer callback
- * 
+ *
  * @param { MutationRecord[] } mutations Mutation list from observer
  */
-const doAfterMutation = (mutations) => {
+const doAfterMutation = mutations => {
     // Ignoring all Youtube urls if they aren't watch page
     if (!isWatchUrl()) return null;
 
@@ -1015,7 +969,6 @@ const doAfterMutation = (mutations) => {
     updateTitleDuration(mutations);
 };
 
-
 /**
  * Starts mutations observer
  */
@@ -1024,7 +977,6 @@ const startDOMObserver = () => {
     const config = { childList: true, subtree: true };
     observer.observe(document, config);
 };
-
 
 (() => {
     'use strict';
