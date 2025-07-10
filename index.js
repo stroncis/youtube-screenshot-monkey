@@ -395,6 +395,53 @@ const getImageName = (element) => {
     return fileName;
 };
 
+/**
+ * Creates a status overlay element for save feedback.
+ *
+ * @param {string} message The message to display
+ * @param {boolean} isSuccess Whether this is a success or error message
+ * @returns {HTMLParagraphElement} Status overlay element
+ */
+const createStatusOverlay = (message, isSuccess = true) => {
+    const overlay = createOverlayTextElement();
+    overlay.style.top = '50%';
+    overlay.style.left = '50%';
+    overlay.style.transform = 'translate(-50%, -50%)';
+    overlay.style['background-color'] = isSuccess ? 'rgba(0, 128, 0, 0.9)' : 'rgba(128, 0, 0, 0.9)';
+    overlay.style['z-index'] = '1000';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s ease-in-out';
+
+    const text = document.createTextNode(message);
+    overlay.appendChild(text);
+
+    return overlay;
+};
+
+/**
+ * Shows a fading status message on the image container.
+ *
+ * @param {HTMLElement} container The container to show the message on
+ * @param {string} message The message to display
+ * @param {boolean} isSuccess Whether this is a success or error message
+ */
+const showStatusMessage = (container, message, isSuccess = true) => {
+    const statusOverlay = createStatusOverlay(message, isSuccess);
+    container.appendChild(statusOverlay);
+
+    setTimeout(() => {
+        statusOverlay.style.opacity = '1';
+    }, 10);
+
+    setTimeout(() => {
+        statusOverlay.style.opacity = '0';
+        setTimeout(() => {
+            if (statusOverlay.parentNode) {
+                statusOverlay.parentNode.removeChild(statusOverlay);
+            }
+        }, 300);
+    }, 3e3);
+};
 
 /**
  * Downloads image on click event.
@@ -406,14 +453,34 @@ const saveImageEventHandler = (event) => {
     const target = event.target;
 
     const linkElement = target.offsetParent;
-    const imageElement = linkElement.firstChild.firstChild;
-    linkElement.href = imageElement.src;
-    const imageFileName = getImageName(target);
-    linkElement.download = imageFileName;
+    const imageContainer = linkElement.offsetParent;
 
-    linkElement.click();
-    updateContainerAfterSave(linkElement);
-    target.style.opacity = '0.5';
+    target.style.cursor = 'wait';
+    target.textContent = 'Saving...';
+    target.style.opacity = '0.7';
+
+    try {
+        const imageElement = linkElement.firstChild.firstChild;
+        linkElement.href = imageElement.src;
+        const imageFileName = getImageName(target);
+        linkElement.download = imageFileName;
+
+        linkElement.click();
+
+        setTimeout(() => {
+            updateContainerAfterSave(linkElement);
+            target.textContent = 'Save';
+            target.style.cursor = 'pointer';
+            target.style.opacity = '0.5';
+            showStatusMessage(imageContainer, 'SAVED!', true);
+        }, 100);
+    } catch (error) {
+        console.error('#YtGr4 Save failed:', error);
+        target.textContent = 'Save';
+        target.style.cursor = 'pointer';
+        target.style.opacity = '1';
+        showStatusMessage(imageContainer, 'FAILED!', false);
+    }
 };
 
 
