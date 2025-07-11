@@ -19,6 +19,7 @@ const metaData = {
     href: '',
     short_url: '',
     thumbnail: {},
+    seekingByScript: false, // Flag to prevent URL change detection when time overlay is clicked
 };
 
 /**
@@ -514,17 +515,66 @@ const createOverlayTextElement = (data = {}) => {
  *
  * @param {number} time frame time location in video
  *
- * @returns {HTMLParagraphElement} Returns time overlay element
+ * @returns {HTMLAnchorElement} Returns clickable time overlay link element
  */
 const createTimeOverlayElement = time => {
-    const overlay = createOverlayTextElement();
-    overlay.style.bottom = '0';
-    overlay.style.right = '0';
+    const timeLink = document.createElement('a');
 
-    const currentVideoTime = hoursMinutesSeconds(Math.trunc(time));
-    const text = document.createTextNode(currentVideoTime);
-    overlay.appendChild(text);
-    return overlay;
+    const timestampSeconds = Math.trunc(time);
+    const currentUrl = new URL(location.href);
+    currentUrl.searchParams.set('t', `${timestampSeconds}s`);
+
+    timeLink.href = currentUrl.toString();
+
+    timeLink.addEventListener('click', event => {
+        event.preventDefault();
+
+        // Set flag to prevent URL change detection from destroying the strip
+        metaData.seekingByScript = true;
+
+        const newUrl = currentUrl.toString();
+        window.history.pushState(null, '', newUrl);
+
+        const videoElement = document.querySelector('.video-stream');
+        if (videoElement) {
+            videoElement.currentTime = timestampSeconds;
+            console.log(`#YtGr4 Seeked to ${timestampSeconds}s`);
+        } else {
+            console.warn('#YtGr4 Video element not found for seeking');
+            metaData.seekingByScript = false;
+        }
+    });
+
+    timeLink.style.position = 'absolute';
+    timeLink.style.bottom = '0';
+    timeLink.style.right = '0';
+    timeLink.style.margin = '4px';
+    timeLink.style.color = 'var(--yt-spec-static-brand-white)';
+    timeLink.style['background-color'] = 'var(--yt-spec-static-overlay-background-heavy)';
+    timeLink.style.padding = '3px 4px';
+    timeLink.style.height = '12px';
+    timeLink.style['border-radius'] = '2px';
+    timeLink.style['font-size'] = 'var(--yt-badge-font-size,1.2rem)';
+    timeLink.style['font-weight'] = '500';
+    timeLink.style['line-height'] = 'var(--yt-badge-line-height-size,1.2rem)';
+    timeLink.style['letter-spacing'] = 'var(--yt-badge-letter-spacing,0.5px)';
+    timeLink.style.cursor = 'pointer';
+    timeLink.style['text-decoration'] = 'none';
+    timeLink.style.transition = 'background-color 0.2s ease';
+
+    timeLink.addEventListener('mouseenter', () => {
+        timeLink.style['background-color'] = 'rgba(255, 255, 255, 0.2)';
+    });
+
+    timeLink.addEventListener('mouseleave', () => {
+        timeLink.style['background-color'] = 'var(--yt-spec-static-overlay-background-heavy)';
+    });
+
+    const currentVideoTime = hoursMinutesSeconds(timestampSeconds);
+    timeLink.textContent = currentVideoTime;
+    timeLink.title = `Jump to ${currentVideoTime}`;
+
+    return timeLink;
 };
 
 /**
@@ -991,8 +1041,14 @@ const doAfterMutation = mutations => {
     // First startup
     if (!metaData.href) updateIdUrlsThumbnail();
 
-    // URL changed
-    if (metaData.href !== location.href) onUrlChange();
+    // URL changed - but ignore if user clicked on a timestamp overlay
+    if (metaData.href !== location.href && !metaData.seekingByScript) {
+        onUrlChange();
+    } else if (metaData.seekingByScript) {
+        // Update the stored href without destroying the strip
+        metaData.href = location.href;
+        metaData.seekingByScript = false;
+    }
 
     updateTitleDuration(mutations);
 };
