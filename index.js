@@ -39,10 +39,55 @@ const getElementText = element => {
 };
 
 /**
- * Sets video title.
+ * Sets video title from multiple reliable sources.
+ * Tries various sources in order of reliability to avoid issues with ads/UI changes.
  */
 const setTitle = () => {
-    metaData.title = getElementText('.ytp-title-link');
+    // '.ytp-title-link' is unreliable as it is changed while ads are playing.
+
+    // Method 1: Document title (most reliable) - format: "Video Title - YouTube"
+    const docTitle = document.title;
+    if (docTitle && docTitle !== 'YouTube' && !docTitle.includes('(') && docTitle.includes(' - YouTube')) {
+        metaData.title = docTitle.replace(' - YouTube', '').trim();
+        return;
+    }
+
+    // Method 2: Meta tags (very reliable)
+    const ogTitleMeta = document.querySelector('meta[property="og:title"]');
+    if (ogTitleMeta && ogTitleMeta.content && ogTitleMeta.content.trim()) {
+        metaData.title = ogTitleMeta.content.trim();
+        return;
+    }
+
+    const titleMeta = document.querySelector('meta[name="title"]');
+    if (titleMeta && titleMeta.content && titleMeta.content.trim()) {
+        metaData.title = titleMeta.content.trim();
+        return;
+    }
+
+    // Method 3: Main page title elements (reliable for loaded pages)
+    const mainTitle = document.querySelector(
+        'h1.ytd-watch-metadata yt-formatted-string, h1.ytd-videoPrimaryInfoRenderer yt-formatted-string, h1[class*="title"] yt-formatted-string'
+    );
+    if (mainTitle && mainTitle.textContent && mainTitle.textContent.trim()) {
+        metaData.title = mainTitle.textContent.trim();
+        return;
+    }
+
+    // Method 4: Fallback to any h1 with video-like content
+    const fallbackTitle = document.querySelector('h1');
+    if (
+        fallbackTitle &&
+        fallbackTitle.textContent &&
+        fallbackTitle.textContent.trim() &&
+        !fallbackTitle.textContent.includes('YouTube') &&
+        fallbackTitle.textContent.length > 3
+    ) {
+        metaData.title = fallbackTitle.textContent.trim();
+        return;
+    }
+
+    console.warn('#YtGr4 Could not determine video title from any source');
 };
 
 /**
@@ -1013,17 +1058,47 @@ const updateTitleDuration = mutations => {
         const hasAddedNode = addedNodes.length;
         if (!hasAddedNode) return null;
 
-        // Directly updated element
-        const hasDurationClass = target.classList.contains('ytp-time-duration');
-        if (hasDurationClass) metaData.duration = getElementText(target);
-        const hasTitleClass = target.classList.contains('ytp-title-link');
-        if (hasTitleClass) metaData.title = getElementText(target);
+        // Check for document title changes (most reliable)
+        if (target === document.head || target.tagName === 'TITLE') {
+            setTitle();
+            return null;
+        }
 
-        // Parent updated
-        const durationChild = target.querySelector('.ytp-time-duration');
+        // Check for meta tag changes
+        if (
+            target.tagName === 'META' &&
+            (target.getAttribute('property') === 'og:title' || target.getAttribute('name') === 'title')
+        ) {
+            setTitle();
+            return null;
+        }
+
+        // Check for main content title changes
+        if (
+            target.classList &&
+            (target.classList.contains('ytd-watch-metadata') ||
+                target.classList.contains('ytd-videoPrimaryInfoRenderer') ||
+                (target.querySelector &&
+                    (target.querySelector('h1.ytd-watch-metadata') ||
+                        target.querySelector('h1.ytd-videoPrimaryInfoRenderer'))))
+        ) {
+            setTitle();
+            return null;
+        }
+
+        // Duration tracking (original functionality)
+        const hasDurationClass = target.classList && target.classList.contains('ytp-time-duration');
+        if (hasDurationClass) metaData.duration = getElementText(target);
+
+        const durationChild = target.querySelector && target.querySelector('.ytp-time-duration');
         if (durationChild) metaData.duration = getElementText(durationChild);
-        const titleChild = target.querySelector('.ytp-title-link');
-        if (titleChild) metaData.title = getElementText(titleChild);
+
+        // Legacy title tracking (fallback for older YouTube layouts)
+        const hasTitleClass = target.classList && target.classList.contains('ytp-title-link');
+        if (hasTitleClass && !metaData.title) setTitle(); // Only use if no title found yet
+
+        const titleChild = target.querySelector && target.querySelector('.ytp-title-link');
+        if (titleChild && !metaData.title) setTitle(); // Only use if no title found yet
 
         return null;
     });
