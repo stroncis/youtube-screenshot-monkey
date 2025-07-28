@@ -39,33 +39,23 @@ const getElementText = element => {
 };
 
 /**
- * Sets video title from multiple reliable sources.
- * Tries various sources in order of reliability to avoid issues with ads/UI changes.
+ * Sets video title from reliable sources that work with YouTube's SPA navigation.
+ * Prioritizes sources that update dynamically when navigating between videos.
  */
 const setTitle = () => {
-    // '.ytp-title-link' is unreliable as it is changed while ads are playing.
-
-    // Method 1: Document title (most reliable) - format: "Video Title - YouTube"
+    // Method 1: Document title (most reliable for SPA) - format: "(2) Video Title - YouTube"
     const docTitle = document.title;
-    if (docTitle && docTitle !== 'YouTube' && !docTitle.includes('(') && docTitle.includes(' - YouTube')) {
-        metaData.title = docTitle.replace(' - YouTube', '').trim();
-        return;
+    if (docTitle && docTitle !== 'YouTube' && docTitle.includes(' - YouTube')) {
+        let cleanTitle = docTitle.replace(' - YouTube', '').trim();
+        cleanTitle = cleanTitle.replace(/^\(\d+\)\s*/, '');
+
+        if (cleanTitle.length > 0) {
+            metaData.title = cleanTitle;
+            return;
+        }
     }
 
-    // Method 2: Meta tags (very reliable)
-    const ogTitleMeta = document.querySelector('meta[property="og:title"]');
-    if (ogTitleMeta && ogTitleMeta.content && ogTitleMeta.content.trim()) {
-        metaData.title = ogTitleMeta.content.trim();
-        return;
-    }
-
-    const titleMeta = document.querySelector('meta[name="title"]');
-    if (titleMeta && titleMeta.content && titleMeta.content.trim()) {
-        metaData.title = titleMeta.content.trim();
-        return;
-    }
-
-    // Method 3: Main page title elements (reliable for loaded pages)
+    // Method 2: Main page title elements (reliable for SPA navigation)
     const mainTitle = document.querySelector(
         'h1.ytd-watch-metadata yt-formatted-string, h1.ytd-videoPrimaryInfoRenderer yt-formatted-string, h1[class*="title"] yt-formatted-string'
     );
@@ -74,7 +64,21 @@ const setTitle = () => {
         return;
     }
 
-    // Method 4: Fallback to any h1 with video-like content
+    // Method 3: Alternative main title selectors for different YouTube layouts
+    const altMainTitle = document.querySelector('#title h1, .ytd-video-primary-info-renderer h1, .watch-main-col h1');
+    if (altMainTitle && altMainTitle.textContent && altMainTitle.textContent.trim()) {
+        metaData.title = altMainTitle.textContent.trim();
+        return;
+    }
+
+    // Method 4: Player title link (fallback, unreliable during ads but sometimes available)
+    const playerTitle = getElementText('.ytp-title-link');
+    if (playerTitle && playerTitle.trim() && !playerTitle.includes('Advertisement')) {
+        metaData.title = playerTitle.trim();
+        return;
+    }
+
+    // Method 5: Last resort - any reasonable h1 element
     const fallbackTitle = document.querySelector('h1');
     if (
         fallbackTitle &&
@@ -1058,42 +1062,34 @@ const updateTitleDuration = mutations => {
         const hasAddedNode = addedNodes.length;
         if (!hasAddedNode) return null;
 
-        // Check for document title changes (most reliable)
+        // Check for document title changes (most reliable for SPA)
         if (target === document.head || target.tagName === 'TITLE') {
             setTitle();
             return null;
         }
 
-        // Check for meta tag changes
-        if (
-            target.tagName === 'META' &&
-            (target.getAttribute('property') === 'og:title' || target.getAttribute('name') === 'title')
-        ) {
-            setTitle();
-            return null;
-        }
-
-        // Check for main content title changes
+        // Check for main content title changes (primary method for SPA)
         if (
             target.classList &&
             (target.classList.contains('ytd-watch-metadata') ||
                 target.classList.contains('ytd-videoPrimaryInfoRenderer') ||
                 (target.querySelector &&
                     (target.querySelector('h1.ytd-watch-metadata') ||
-                        target.querySelector('h1.ytd-videoPrimaryInfoRenderer'))))
+                        target.querySelector('h1.ytd-videoPrimaryInfoRenderer') ||
+                        target.querySelector('#title h1'))))
         ) {
             setTitle();
             return null;
         }
 
-        // Duration tracking (original functionality)
+        // Duration tracking (reliable)
         const hasDurationClass = target.classList && target.classList.contains('ytp-time-duration');
         if (hasDurationClass) metaData.duration = getElementText(target);
 
         const durationChild = target.querySelector && target.querySelector('.ytp-time-duration');
         if (durationChild) metaData.duration = getElementText(durationChild);
 
-        // Legacy title tracking (fallback for older YouTube layouts)
+        // Legacy title tracking (fallback only, unreliable during ads)
         const hasTitleClass = target.classList && target.classList.contains('ytp-title-link');
         if (hasTitleClass && !metaData.title) setTitle(); // Only use if no title found yet
 
